@@ -1,0 +1,9 @@
+version: "3"
+services:
+  front_end:
+    build: ./front_end
+    container_name: front_end_c
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
