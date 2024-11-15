@@ -12,3 +12,4 @@ venv
 .git
 .envs/
 **/.envs/
+node_modules
