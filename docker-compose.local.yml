@@ -35,5 +35,18 @@ services:
   #         add rabbitmq
   #
 
+  frontend:
+    image: front-end-i
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: front_end_c_dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data_user_management_local:

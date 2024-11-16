@@ -23,6 +23,17 @@ services:
     ports:
       - "5432:5432"
 
+  front-end:
+    image: front-end-i
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: front_end_c_prod
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+
   nginx:
     build: ./compose/nginx
     container_name: nginx_production
