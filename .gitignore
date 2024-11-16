@@ -279,3 +279,6 @@ my_awesome_project/media/
 .envs/*
 !.envs/.local/
 **/.envs/
+
+# test views
+*.rest
