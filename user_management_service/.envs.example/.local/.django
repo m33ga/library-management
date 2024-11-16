@@ -1,4 +1,5 @@
 # General
 # ------------------------------------------------------------------------------
-USE_DOCKER=
-IPYTHONDIR=
+DEBUG=
+SECRET_KEY=
+DJANGO_ALLOWED_HOSTS=
