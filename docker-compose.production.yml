@@ -1,0 +1,39 @@
+services:
+  user_management:
+    build:
+      context: ./user_management_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: user_management_production
+    container_name: user_management_production
+    depends_on:
+      - postgres_user_management
+    expose:
+      - "8000:8000"
+    env_file:
+      - ./user_management_service/.envs/.production/.postgres
+      - ./user_management_service/.envs/.production/.django
+
+  postgres_user_management:
+    image: postgres:16
+    container_name: postgres_user_management_production
+    volumes:
+      - postgres_data_user_management_production:/var/lib/postgresql/data
+    env_file:
+      - ./user_management_service/.envs/.production/.postgres
+    ports:
+      - "5432:5432"
+
+  nginx:
+    build: ./compose/nginx
+    container_name: nginx_production
+    ports:
+      - 1337:80
+    depends_on:
+      - postgres_user_management
+
+  # TODO:   add rest of microservices and db container for each of them
+  #         add rabbitmq
+  #
+
+volumes:
+  postgres_data_user_management_production:

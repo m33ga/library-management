@@ -1,0 +1,39 @@
+services:
+  user_management:
+    build:
+      context: ./user_management_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: user_management_local
+    container_name: user_management_local
+    depends_on:
+      - postgres_user_management
+    volumes:
+      - ./user_management_service:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./user_management_service/.envs/.local/.postgres
+      - ./user_management_service/.envs/.local/.django
+
+  postgres_user_management:
+    image: postgres:16
+    container_name: postgres_user_management_local
+    volumes:
+      - postgres_data_user_management_local:/var/lib/postgresql/data
+    env_file:
+      - ./user_management_service/.envs/.local/.postgres
+    ports:
+      - "5432:5432"
+
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: mailpit_local
+    ports:
+      - "8025:8025"
+
+  # TODO:   add rest of microservices and db container for each of them
+  #         add rabbitmq
+  #
+
+volumes:
+  postgres_data_user_management_local:
