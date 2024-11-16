@@ -6,7 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from .serializers import UserSerializer
+from .serializers import UserSerializer, InstitutionSerializer
 
 @api_view(['POST'])
 def login(request):
@@ -36,3 +36,14 @@ def signup(request):
 @permission_classes([IsAuthenticated])
 def test_token(request):
     return Response("passed for {}".format(request.user.email))
+
+# TODO MS For now only check if it has a token, after when making the roles check if it has permissions (If it's admin)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def create_institution(request):
+    serializer = InstitutionSerializer(data=request.data)
+    if serializer.is_valid():
+        institution = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
