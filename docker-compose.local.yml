@@ -25,16 +25,42 @@ services:
     ports:
       - "5432:5432"
 
+  notification:
+    build:
+      context: ./notification_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: notification_local
+    container_name: notification_local
+    depends_on:
+      - postgres_notification
+    volumes:
+      - ./notification_service:/app
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+      - ./notification_service/.envs/.local/.django
+
+  postgres_notification:
+    image: postgres:16
+    container_name: postgres_notification_local
+    volumes:
+      - postgres_data_notification_local:/var/lib/postgresql/data
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+    ports:
+      - "5433:5432"
+
   mailpit:
     image: docker.io/axllent/mailpit:latest
     container_name: mailpit_local
     ports:
-      - "8025:8025"
+      - "8025:8025" # Web interface
+      - "1025:1025" # SMTP server
 
   # TODO:   add rest of microservices and db container for each of them
   #         add rabbitmq
   #
-
   frontend:
     image: front-end-i
     build:
@@ -49,4 +75,5 @@ services:
     tty: true
 
 volumes:
+  postgres_data_notification_local:
   postgres_data_user_management_local:
