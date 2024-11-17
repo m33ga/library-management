@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from member_auth.models import Institution
 from rest_framework.validators import UniqueValidator
 
 class UserSerializer(serializers.ModelSerializer):
@@ -12,3 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'password', 'email']
+
+class InstitutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Institution
+        fields = ['id', 'name']
