@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from member_auth.models import Institution
+from django.contrib.auth.models import User, Group
 from rest_framework.validators import UniqueValidator
+from member_auth.models import Institution
 
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
@@ -13,6 +13,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'password', 'email']
+
+    def create(self, validated_data):
+        user = super().create(validated_data)
+
+        member_group = Group.objects.get(name='member')
+        user.groups.add(member_group)
+        return user
 
 class InstitutionSerializer(serializers.ModelSerializer):
     class Meta:
