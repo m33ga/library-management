@@ -12,11 +12,22 @@ from user_management.serializers import UserSerializer, InstitutionSerializer
 @api_view(['POST'])
 def login(request):
     user = get_object_or_404(User, email=request.data['email'])
+    
     if not user.check_password(request.data['password']):
         return Response("Invalid credentials", status=status.HTTP_404_NOT_FOUND)
+    
     token, created = Token.objects.get_or_create(user=user)
+    
+    groups = user.groups.all()
+    group_data = [{'id': group.id, 'name': group.name} for group in groups]
+
     serializer = UserSerializer(user)
-    return Response({'token': token.key, 'user': serializer.data})
+    
+    return Response({
+        'token': token.key,
+        'user': serializer.data,
+        'groups': group_data
+    })
 
 
 @api_view(['POST'])
