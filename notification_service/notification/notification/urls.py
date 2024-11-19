@@ -24,5 +24,5 @@ urlpatterns = router.urls
 
 urlpatterns += [
     path('admin/', admin.site.urls),
-    path('api/email/', include('email_notification.urls')),
+    path('email/', include('email_notification.urls')),
 ]
