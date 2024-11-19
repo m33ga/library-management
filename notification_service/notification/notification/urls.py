@@ -14,9 +14,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.contrib import admin
 from rest_framework import routers
+from email_notification import views as email_notification
 
 router = routers.DefaultRouter()
 
@@ -24,5 +25,5 @@ urlpatterns = router.urls
 
 urlpatterns += [
     path('admin/', admin.site.urls),
-    path('email/', include('email_notification.urls')),
+    re_path('email/send-email/', email_notification.send_email, name='send-email'),
 ]
