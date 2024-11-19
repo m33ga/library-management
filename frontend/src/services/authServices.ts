@@ -10,7 +10,7 @@ interface User {
   username: string;
   email: string;
   password: string;
-  selectedInstitution: number;
+  institution: number;
 }
 
 
@@ -25,11 +25,13 @@ export const login = async (credentials: Credentials) => {
     });
 
     if (!response.ok) {
-      throw new Error("Login error. Check your credentials.");
+      const errorData = await response.json();
+      console.error("Erro ao registrar:", errorData);
+      return { success: false, error: errorData };
     }
 
     const data = await response.json();
-    return data;
+    return { success: true, data };
   } catch (error) {
     console.error("Error when logging in:", error);
     throw error;
@@ -38,6 +40,7 @@ export const login = async (credentials: Credentials) => {
 
 export const register = async (user: User) => {
   try {
+    console.log(user)
     const response = await fetch(`${API_URL}signup/`, {
       method: "POST",
       headers: {
@@ -47,11 +50,13 @@ export const register = async (user: User) => {
     });
 
     if (!response.ok) {
-      throw new Error("Registration error. Check your data.");
+      const errorData = await response.json();
+      console.error("Erro ao registrar:", errorData);
+      return { success: false, error: errorData };
     }
 
     const data = await response.json();
-    return data;
+    return { success: true, data };
   } catch (error) {
     console.error("Error when registering:", error);
     throw error;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { register } from "../../services/authServices";
 
-const institutions = [
+const colleges = [
   { id: 1, name: "Institution 1" },
   { id: 2, name: "Institution 2" },
   { id: 3, name: "Institution 3" },
@@ -14,22 +14,28 @@ export default function Signup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [selectedInstitution, setSelectedInstitution] = useState(
-    institutions[0].id
-  );
+  const [institution, setInstitution] = useState(colleges[0].id);
+  const [error, setError] = useState({ success: false, error: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    const formData = { username, email, password, institution };
     try {
-      const formData = { username, email, password, selectedInstitution };
-      const data = await register(formData);
-      console.log("Login bem-sucedido:", data);
-
-      // Redireciona o usuário após login bem-sucedido
-      navigate("/dashboard");
-    } catch (error) {
-      alert("Error registering.");
+      const result = await register(formData);
+      if (result.success) {
+        console.log("Registro bem-sucedido:", result.data);
+        navigate("/dashboard");
+      } else {
+        console.error("Erro ao registrar:", result.error);
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error("Erro ao registrar:", err);
+      if (err instanceof Error) {
+        setError({ success: false, error: err.message });
+      } else {
+        setError({ success: false, error: "Erro desconhecido" });
+      }
     }
   };
 
@@ -75,13 +81,13 @@ export default function Signup() {
           <select
             id="institution"
             name="institution"
-            value={selectedInstitution}
-            onChange={(e) => setSelectedInstitution(Number(e.target.value))}
+            value={institution}
+            onChange={(e) => setInstitution(Number(e.target.value))}
             required
           >
-            {institutions.map((institution) => (
-              <option key={institution.id} value={institution.id}>
-                {institution.name}
+            {colleges.map((colleges) => (
+              <option key={colleges.id} value={colleges.id}>
+                {colleges.name}
               </option>
             ))}
           </select>
