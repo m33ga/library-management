@@ -55,18 +55,37 @@ def signup(request):
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def test_token(request):
-    return Response("passed for {}".format(request.user.email))
 
-# TODO MS For now only check if it has a token, after when making the roles check if it has permissions (If it's admin)
+    serializer = UserSerializer(request.user)
+    
+    groups = request.user.groups.all()
+    group_data = [{'id': group.id, 'name': group.name} for group in groups]
+    
+    return Response({
+        'user': serializer.data,
+        'groups': group_data
+    }, status=status.HTTP_200_OK)
+
+
+# TODO DONE MS For now only check if it has a token, after when making the roles check if it has permissions (If it's admin)
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def create_institution(request):
+    # The ID 3 is the admin role
+    if not request.user.groups.filter(id=3).exists():
+        return Response(
+            {"error": "You do not have permission to perform this action."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     serializer = InstitutionSerializer(data=request.data)
     if serializer.is_valid():
         institution = serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['POST'])
