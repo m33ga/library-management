@@ -22,12 +22,20 @@ def login(request):
     group_data = [{'id': group.id, 'name': group.name} for group in groups]
 
     serializer = UserSerializer(user)
-    
+
+    profile = user.profile
+    institution_data = {
+        "id": profile.institution.id if profile.institution else None,
+        "name": profile.institution.name if profile.institution else None
+    }
+
     return Response({
         'token': token.key,
         'user': serializer.data,
-        'groups': group_data
+        'groups': group_data,
+        'institution': institution_data
     })
+
 
 
 @api_view(['POST'])
@@ -39,16 +47,23 @@ def signup(request):
         user.set_password(request.data['password'])
         user.save()
         token = Token.objects.create(user=user)
-        
+
+        profile = user.profile
+        institution_data = {
+            "id": profile.institution.id if profile.institution else None,
+            "name": profile.institution.name if profile.institution else None
+        }
         groups = user.groups.all()
         group_data = [{'id': group.id, 'name': group.name} for group in groups]
 
         return Response({
             'token': token.key,
             'user': serializer.data,
-            'groups': group_data
+            'groups': group_data,
+            'institution': institution_data
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['GET'])
