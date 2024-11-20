@@ -10,7 +10,7 @@ interface User {
   username: string;
   email: string;
   password: string;
-  selectedInstitution: number;
+  institution: number;
 }
 
 
@@ -25,11 +25,13 @@ export const login = async (credentials: Credentials) => {
     });
 
     if (!response.ok) {
-      throw new Error("Login error. Check your credentials.");
+      const errorData = await response.json();
+      console.error("Error when logging in:", errorData);
+      return { success: false, error: errorData };
     }
 
     const data = await response.json();
-    return data;
+    return { success: true, data };
   } catch (error) {
     console.error("Error when logging in:", error);
     throw error;
@@ -47,13 +49,20 @@ export const register = async (user: User) => {
     });
 
     if (!response.ok) {
-      throw new Error("Registration error. Check your data.");
+      const errorData = await response.json();
+      const errorMessage = errorData.email ? errorData.email[0] : errorData.username[0];
+      console.log("Error when registering:", errorMessage);
+      return { success: false, error: errorMessage };
     }
 
     const data = await response.json();
-    return data;
+    return { success: true, data };
   } catch (error) {
-    console.error("Error when registering:", error);
-    throw error;
+    let errorMessage = "Erro desconhecido";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    console.log("Error when registering:", errorMessage);
+    throw new Error(errorMessage);
   }
 }

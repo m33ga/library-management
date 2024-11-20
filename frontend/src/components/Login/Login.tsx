@@ -8,20 +8,27 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState({ success: false, error: "" });
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = { email, password };
     try {
-      const formData = { email, password };
       const data = await login(formData);
-      console.log("Login bem-sucedido:", data);
-
-      // Redireciona o usuário após login bem-sucedido
-      navigate("/");
-    } catch (error) {
-      console.log(error);
-      alert("Error logging in. Check your credentials.");
+      if (data.success) {
+        console.log("Registro bem-sucedido:", data.data);
+        navigate("/dashboard");
+      } else {
+        console.error("Erro ao registrar:", data.error);
+        setError(data.error);
+      }
+    } catch (err) {
+      console.error("Erro ao registrar:", err);
+      if (err instanceof Error) {
+        setError({ success: false, error: err.message });
+      } else {
+        setError({ success: false, error: "Erro desconhecido" });
+      }
     }
   };
   return (

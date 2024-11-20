@@ -14,25 +14,31 @@ export default function Signup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [selectedInstitution, setSelectedInstitution] = useState(
-    institutions[0].id
-  );
+  const [institution, setInstitution] = useState(institutions[0].id);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    const formData = { username, email, password, institution };
     try {
-      const formData = { username, email, password, selectedInstitution };
-      const data = await register(formData);
-      console.log("Login bem-sucedido:", data);
-
-      // Redireciona o usuário após login bem-sucedido
-      navigate("/dashboard");
-    } catch (error) {
-      alert("Error registering.");
+      const result = await register(formData);
+      if (result.success) {
+        console.log("Registro bem-sucedido:", result.data);
+        navigate("/dashboard");
+      } else {
+        console.error("Erro ao registrar:", result.error);
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error("Erro ao registrar:", err);
+      if (err instanceof Error) {
+        setError(err.message );
+      } else {
+        setError("Erro desconhecido");
+      }
     }
   };
-
+  console.log("1",error);
   return (
     <div className="signup-container">
       <h2>Sign Up</h2>
@@ -69,19 +75,20 @@ export default function Signup() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          <span>{error}</span>
         </div>
         <div className="form-group">
           <label htmlFor="institution">Institution</label>
           <select
             id="institution"
             name="institution"
-            value={selectedInstitution}
-            onChange={(e) => setSelectedInstitution(Number(e.target.value))}
+            value={institution}
+            onChange={(e) => setInstitution(Number(e.target.value))}
             required
           >
-            {institutions.map((institution) => (
-              <option key={institution.id} value={institution.id}>
-                {institution.name}
+            {institutions.map((institutions) => (
+              <option key={institutions.id} value={institutions.id}>
+                {institutions.name}
               </option>
             ))}
           </select>
