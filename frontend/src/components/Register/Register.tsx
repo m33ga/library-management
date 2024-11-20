@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { register } from "../../services/authServices";
 
-const colleges = [
+const institutions = [
   { id: 1, name: "Institution 1" },
   { id: 2, name: "Institution 2" },
   { id: 3, name: "Institution 3" },
@@ -14,7 +14,7 @@ export default function Signup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [institution, setInstitution] = useState(colleges[0].id);
+  const [institution, setInstitution] = useState(institutions[0].id);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,9 +86,9 @@ export default function Signup() {
             onChange={(e) => setInstitution(Number(e.target.value))}
             required
           >
-            {colleges.map((colleges) => (
-              <option key={colleges.id} value={colleges.id}>
-                {colleges.name}
+            {institutions.map((institutions) => (
+              <option key={institutions.id} value={institutions.id}>
+                {institutions.name}
               </option>
             ))}
           </select>
