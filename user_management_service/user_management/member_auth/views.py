@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from user_management.serializers import UserSerializer, InstitutionSerializer
+from member_auth.models import Institution
 
 @api_view(['POST'])
 def login(request):
@@ -113,3 +114,46 @@ def logout(request):
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
     except Token.DoesNotExist:
         return Response({"error": "Token not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def change_user_institution(request):
+    if not request.user.groups.filter(id=3).exists():
+        return Response(
+            {"error": "You do not have permission to perform this action."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    user_id = request.data.get('user_id')
+    new_institution_id = request.data.get('institution_id')
+
+    if not user_id or not new_institution_id:
+        return Response(
+            {"error": "Both 'user_id' and 'institution_id' must be provided."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(id=user_id)
+        institution = Institution.objects.get(id=new_institution_id)
+
+        profile = user.profile
+        profile.institution = institution
+        profile.save()
+
+        return Response(
+            {
+                "message": "User's institution updated successfully.",
+                "user_id": user.id,
+                "new_institution": {"id": institution.id, "name": institution.name}
+            },
+            status=status.HTTP_200_OK
+        )
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Institution.DoesNotExist:
+        return Response({"error": "Institution not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
