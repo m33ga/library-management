@@ -46,7 +46,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . /app
 
 # Expose the application port
-EXPOSE 8000
+EXPOSE 8080
 
 # Set the entrypoint
-ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:8000", "user_management.wsgi:application", "--workers=3", "--threads=2", "--timeout=120"]
+ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:8080", "notification.wsgi:application", "--workers=3", "--threads=2", "--timeout=120"]
