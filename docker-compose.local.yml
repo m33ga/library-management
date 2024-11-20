@@ -7,6 +7,7 @@ services:
     container_name: user_management_local
     depends_on:
       - postgres_user_management
+      - rabbitmq
     volumes:
       - ./user_management_service:/app
     ports:
@@ -33,6 +34,7 @@ services:
     container_name: notification_local
     depends_on:
       - postgres_notification
+      - rabbitmq
     volumes:
       - ./notification_service:/app
     ports:
@@ -58,9 +60,13 @@ services:
       - "8025:8025" # Web interface
       - "1025:1025" # SMTP server
 
-  # TODO:   add rest of microservices and db container for each of them
-  #         add rabbitmq
-  #
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_local
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
+
   frontend:
     image: front-end-i
     build:
