@@ -10,6 +10,9 @@ from rest_framework.authtoken.models import Token
 from user_management.serializers import UserSerializer, InstitutionSerializer
 from member_auth.models import Institution
 
+# Basic Member Views
+
+# - login: Authenticates a user and returns a token, user data, group info, and institution.
 @api_view(['POST'])
 def login(request):
     user = get_object_or_404(User, email=request.data['email'])
@@ -38,7 +41,7 @@ def login(request):
     })
 
 
-
+# - signup: Registers a new user, creates their profile, assigns institution info and returns a token, user data, group info, and institution.
 @api_view(['POST'])
 def signup(request):
     serializer = UserSerializer(data=request.data)
@@ -66,7 +69,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
+# - test_token: Verifies the token and returns user and group information.
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -83,7 +86,22 @@ def test_token(request):
     }, status=status.HTTP_200_OK)
 
 
-# TODO DONE MS For now only check if it has a token, after when making the roles check if it has permissions (If it's admin)
+# - logout: Logs out a user by deleting their token.
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    try:
+        token = Token.objects.get(user=request.user)
+        token.delete()
+        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+    except Token.DoesNotExist:
+        return Response({"error": "Token not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Admin Views
+
+# - create_institution: Allows admins to create a new institution.
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -103,19 +121,7 @@ def create_institution(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-def logout(request):
-    try:
-        token = Token.objects.get(user=request.user)
-        token.delete()
-        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
-    except Token.DoesNotExist:
-        return Response({"error": "Token not found"}, status=status.HTTP_400_BAD_REQUEST)
-
-
+# - change_user_institution: Allows admins to update the institution for a specific user.
 @api_view(['PUT'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
