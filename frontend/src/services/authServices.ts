@@ -26,7 +26,7 @@ export const login = async (credentials: Credentials) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Erro ao registrar:", errorData);
+      console.error("Error when logging in:", errorData);
       return { success: false, error: errorData };
     }
 
@@ -40,7 +40,6 @@ export const login = async (credentials: Credentials) => {
 
 export const register = async (user: User) => {
   try {
-    console.log(user)
     const response = await fetch(`${API_URL}signup/`, {
       method: "POST",
       headers: {
@@ -51,14 +50,19 @@ export const register = async (user: User) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Erro ao registrar:", errorData);
-      return { success: false, error: errorData };
+      const errorMessage = errorData.email ? errorData.email[0] : errorData.username[0];
+      console.log("Error when registering:", errorMessage);
+      return { success: false, error: errorMessage };
     }
 
     const data = await response.json();
     return { success: true, data };
   } catch (error) {
-    console.error("Error when registering:", error);
-    throw error;
+    let errorMessage = "Erro desconhecido";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    console.log("Error when registering:", errorMessage);
+    throw new Error(errorMessage);
   }
 }

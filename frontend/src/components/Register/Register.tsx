@@ -15,7 +15,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [institution, setInstitution] = useState(colleges[0].id);
-  const [error, setError] = useState({ success: false, error: "" });
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +32,13 @@ export default function Signup() {
     } catch (err) {
       console.error("Erro ao registrar:", err);
       if (err instanceof Error) {
-        setError({ success: false, error: err.message });
+        setError(err.message );
       } else {
-        setError({ success: false, error: "Erro desconhecido" });
+        setError("Erro desconhecido");
       }
     }
   };
-
+  console.log("1",error);
   return (
     <div className="signup-container">
       <h2>Sign Up</h2>
@@ -75,6 +75,7 @@ export default function Signup() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          <span>{error}</span>
         </div>
         <div className="form-group">
           <label htmlFor="institution">Institution</label>
