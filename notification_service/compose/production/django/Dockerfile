@@ -4,6 +4,7 @@ FROM docker.io/python:3.12.7-slim-bookworm AS builder
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Set working directory
 WORKDIR /app
@@ -28,6 +29,7 @@ FROM docker.io/python:3.12.7-slim-bookworm AS runtime
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Set working directory
 WORKDIR /app
@@ -49,4 +51,5 @@ COPY . /app
 EXPOSE 8080
 
 # Set the entrypoint
-ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:8080", "notification.wsgi:application", "--workers=3", "--threads=2", "--timeout=120"]
+
+ENTRYPOINT ["/bin/sh", "-c", "cd notification && gunicorn notification.wsgi:application --bind 0.0.0.0:8080"]
