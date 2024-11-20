@@ -39,7 +39,15 @@ def signup(request):
         user.set_password(request.data['password'])
         user.save()
         token = Token.objects.create(user=user)
-        return Response({'token': token.key, 'user': serializer.data})
+        
+        groups = user.groups.all()
+        group_data = [{'id': group.id, 'name': group.name} for group in groups]
+
+        return Response({
+            'token': token.key,
+            'user': serializer.data,
+            'groups': group_data
+        }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
