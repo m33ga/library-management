@@ -2,7 +2,7 @@ services:
   user_management:
     build:
       context: ./user_management_service
-      dockerfile: ./compose/local/django/Dockerfile
+      dockerfile: ./compose/production/django/Dockerfile
     image: user_management_production
     container_name: user_management_production
     depends_on:
@@ -42,9 +42,38 @@ services:
     depends_on:
       - postgres_user_management
 
+  notification:
+    build:
+      context: ./notification_service
+      dockerfile: ./compose/production/django/Dockerfile
+    image: notification_production
+    container_name: notification_production
+    depends_on:
+      - postgres_notification
+    expose:
+      - "8080:8080"
+    env_file:
+      - ./notification_service/.envs/.production/.postgres
+      - ./notification_service/.envs/.production/.django
+
+  postgres_notification:
+    image: postgres:16
+    container_name: postgres_notification_production
+    volumes:
+      - postgres_data_notification_production:/var/lib/postgresql/data
+    env_file:
+      - ./notification_service/.envs/.production/.postgres
+    ports:
+      - "5433:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_production
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
   # TODO:   add rest of microservices and db container for each of them
-  #         add rabbitmq
-  #
 
 volumes:
   postgres_data_user_management_production:
+  postgres_data_notification_production:
