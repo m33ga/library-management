@@ -37,6 +37,9 @@ deploy:
     - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
     - scp -r * ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}
     - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
-    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "docker compose pull && docker compose up -d"
+    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "sudo docker compose down && sudo docker compose pull && sudo docker compose up -d"
+    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "sudo docker system prune -f -a && sudo docker compose up -d --build"
+    #- ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "sudo docker compose down && sudo docker system prune -f -a && sudo docker compose up -d --build"
   tags:
     - docker
+
