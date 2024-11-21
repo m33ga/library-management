@@ -13,7 +13,6 @@ before_script:
 build:
   stage: build
   script:
-    - docker buildx create --use
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system/sdt_project_group_05:latest -f user_management_service/compose/local/django/Dockerfile --push .
   tags:
     - docker
