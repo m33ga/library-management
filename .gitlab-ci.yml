@@ -8,7 +8,6 @@ services:
 
 before_script:
   - docker info
-user_management_service/requirements/
 
 build:
   stage: build
