@@ -15,6 +15,8 @@ services:
     env_file:
       - ./user_management_service/.envs/.local/.postgres
       - ./user_management_service/.envs/.local/.django
+    command:
+      - /start
 
   postgres_user_management:
     image: postgres:16
@@ -42,6 +44,8 @@ services:
     env_file:
       - ./notification_service/.envs/.local/.postgres
       - ./notification_service/.envs/.local/.django
+    command:
+      - /start
 
   postgres_notification:
     image: postgres:16
@@ -93,7 +97,6 @@ services:
     volumes:
       - /app/node_modules
       - ./frontend:/app
-
 
 volumes:
   postgres_data_notification_local:
