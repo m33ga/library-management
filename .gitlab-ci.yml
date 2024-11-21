@@ -26,6 +26,4 @@ push:
     - docker push ${CI_REGISTRY}/library_management_system/frontend:latest
   tags:
     - docker
-  only:
-    - main
 
