@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('member_auth', '0002_add_initial_groups'),
+        ('member_auth', '0002_add_initial_rows'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
