@@ -34,10 +34,10 @@ deploy:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - scp docker-compose.prod.yml ${REMOTE_USER}@${REMOTE_SERVER}:/home/${REMOTE_USER}/docker-compose.yml
-    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} << EOF
+    - scp docker-compose.prod.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+    - ssh -T ${SSH_USER}@${SSH_HOST} << EOF
         echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-        cd /home/${REMOTE_USER} && docker compose --env-file /home/${REMOTE_USER}/env_file pull && docker compose --env-file /home/${REMOTE_USER}/env_file up -d
+        cd /home/${SSH_USER} && docker compose --env-file /home/${SSH_USER}/env_file pull && docker compose --env-file /home/${SSH_USER}/env_file up -d
       EOF
   tags:
     - docker
