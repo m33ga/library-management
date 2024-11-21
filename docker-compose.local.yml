@@ -90,6 +90,10 @@ services:
       - NODE_ENV=development
     stdin_open: true
     tty: true
+    volumes:
+      - /app/node_modules
+      - ./frontend:/app
+
 
 volumes:
   postgres_data_notification_local:
