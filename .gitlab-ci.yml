@@ -37,20 +37,6 @@ deploy:
     - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
     - scp -r * ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}
     - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
-    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "docker compose --env-file /home/${REMOTE_USER}/env_file pull && docker compose --env-file /home/${REMOTE_USER}/env_file up -d"
+    - ssh -T ${REMOTE_USER}@${REMOTE_SERVER} "docker compose pull && docker compose up -d"
   tags:
     - docker
-
-# deploy:
-#   stage: deploy
-#   script:
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-#     - chmod 600 ~/.ssh/id_rsa
-#     - scp docker-compose.prod.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
-#     - ssh -T ${SSH_USER}@${SSH_HOST} << EOF
-#         echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-#         cd /home/${SSH_USER} && docker compose --env-file /home/${SSH_USER}/env_file pull && docker compose --env-file /home/${SSH_USER}/env_file up -d
-#       EOF
-#   tags:
-#     - docker
