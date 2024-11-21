@@ -69,7 +69,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# - test_token: Verifies the token and returns user and group information.
+# - test_token: Verifies the token and returns user, group, and institution information.
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -80,9 +80,16 @@ def test_token(request):
     groups = request.user.groups.all()
     group_data = [{'id': group.id, 'name': group.name} for group in groups]
     
+    profile = request.user.profile
+    institution_data = {
+        "id": profile.institution.id if profile.institution else None,
+        "name": profile.institution.name if profile.institution else None
+    }
+
     return Response({
         'user': serializer.data,
-        'groups': group_data
+        'groups': group_data,
+        'institution': institution_data
     }, status=status.HTTP_200_OK)
 
 
