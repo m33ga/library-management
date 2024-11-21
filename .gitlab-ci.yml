@@ -1,9 +1,19 @@
 stages:
   - build
 
+image: docker:latest
+
+services:
+  - docker:dind
+
+before_script:
+  - docker info
+
+
 build:
   stage: build
   script:
-    - echo "Hello world"
-  only:
-    - main
+    - docker buildx create --use
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/${SSH_USER}/sdt-project-group-05:latest -f user_management_service/compose/local/django/Dockerfile --push .
+  tags:
+    - docker
