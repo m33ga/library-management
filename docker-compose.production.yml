@@ -27,7 +27,7 @@ services:
     image: front-end-i
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod
+      dockerfile: compose/Dockerfile.prod
     container_name: front_end_c_prod
     ports:
       - "8080:80"
