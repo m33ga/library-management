@@ -6,7 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-
 # Set working directory
 WORKDIR /app
 
@@ -49,7 +48,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . /app
 
 # Expose the application port
-EXPOSE 8000
+EXPOSE 8080
 
 # Set the entrypoint
-ENTRYPOINT ["/bin/sh", "-c", "cd user_management && gunicorn user_management.wsgi:application --bind 0.0.0.0:8080"]
+
+ENTRYPOINT ["/bin/sh", "-c", "cd notification && gunicorn notification.wsgi:application --bind 0.0.0.0:8080"]
