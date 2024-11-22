@@ -1,7 +1,7 @@
 # THIS STILL HAS TO BE ADAPTED
 # ------------------------------------------------------------------------------
 # DJANGO_READ_DOT_ENV_FILE=True
-DJANGO_SETTINGS_MODULE=
+DJANGO_SETTINGS_MODULE= 
 DJANGO_SECRET_KEY=
 DJANGO_ADMIN_URL=
 DJANGO_ALLOWED_HOSTS=

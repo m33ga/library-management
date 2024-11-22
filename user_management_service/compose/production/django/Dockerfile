@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY user_management_service/requirements/ /app/requirements/
+COPY requirements/ /app/requirements/
 RUN pip install --upgrade pip && pip install -r /app/requirements/production.txt
 
 # Etapa 2: Produção
@@ -36,8 +36,12 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy the Django project files into the container
 COPY . /app
 
-# Set up the entrypoint
-ENTRYPOINT ["python", "user_management/manage.py"]
+# Copy entrypoint script
+COPY ./compose/production/django/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command
-CMD ["runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "user_management.user_management.wsgi", "--bind", "0.0.0.0:8000", "--workers", "3"]

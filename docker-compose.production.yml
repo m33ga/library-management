@@ -1,13 +1,15 @@
+version: '3.8'
+
 services:
   user_management:
     build:
       context: ./user_management_service
-      dockerfile: ./compose/local/django/Dockerfile
+      dockerfile: ./compose/production/django/Dockerfile
     image: user_management_production
     container_name: user_management_production
     depends_on:
       - postgres_user_management
-    expose:
+    ports:
       - "8000:8000"
     env_file:
       - ./user_management_service/.envs/.production/.postgres
@@ -22,12 +24,17 @@ services:
       - ./user_management_service/.envs/.production/.postgres
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  front-end:
-    image: front-end-i
+  frontend:
     build:
       context: ./frontend
       dockerfile: compose/Dockerfile.prod
+    image: front-end-i
     container_name: front_end_c_prod
     ports:
       - "8080:80"
@@ -35,16 +42,13 @@ services:
       - NODE_ENV=production
 
   nginx:
-    build: ./compose/nginx
+    build:
+      context: ./compose/nginx
     container_name: nginx_production
     ports:
-      - 1337:80
+      - "1337:80"
     depends_on:
       - postgres_user_management
-
-  # TODO:   add rest of microservices and db container for each of them
-  #         add rabbitmq
-  #
 
 volumes:
   postgres_data_user_management_production:
