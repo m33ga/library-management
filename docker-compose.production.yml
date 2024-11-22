@@ -32,7 +32,7 @@ services:
     # replace image with image from registry
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod
+      dockerfile: compose/Dockerfile.prod
     container_name: front_end_c_prod
     ports:
       - "3000:3000"
