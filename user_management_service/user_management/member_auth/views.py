@@ -10,7 +10,15 @@ from rest_framework.authtoken.models import Token
 from user_management.serializers import UserSerializer, InstitutionSerializer
 from member_auth.models import Institution
 
-# Basic Member Views
+# Not authentificated views
+
+# - list_institutions: Returns a list of all institutions.
+@api_view(['GET'])
+def list_institutions(request):
+    institutions = Institution.objects.all()
+    serializer = InstitutionSerializer(institutions, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # - login: Authenticates a user and returns a token, user data, group info, and institution.
 @api_view(['POST'])
@@ -68,6 +76,8 @@ def signup(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# Basic Member Views
 
 # - test_token: Verifies the token and returns user, group, and institution information.
 @api_view(['GET'])
