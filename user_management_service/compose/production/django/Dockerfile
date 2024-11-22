@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pip and dependencies
-COPY requirements/ /app/requirements/
+COPY user_management_service/requirements/ /app/requirements/
 RUN pip install --upgrade pip && pip install --no-cache-dir -r /app/requirements/production.txt
 
 # Copy application code for dependency analysis
