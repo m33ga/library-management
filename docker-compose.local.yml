@@ -7,6 +7,7 @@ services:
     container_name: user_management_local
     depends_on:
       - postgres_user_management
+      - rabbitmq
     volumes:
       - ./user_management_service:/app
     ports:
@@ -14,6 +15,8 @@ services:
     env_file:
       - ./user_management_service/.envs/.local/.postgres
       - ./user_management_service/.envs/.local/.django
+    command:
+      - /start
 
   postgres_user_management:
     image: postgres:16
@@ -25,15 +28,59 @@ services:
     ports:
       - "5432:5432"
 
+  notification:
+    build:
+      context: ./notification_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: notification_local
+    container_name: notification_local
+    depends_on:
+      - postgres_notification
+      - rabbitmq
+    volumes:
+      - ./notification_service:/app
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+      - ./notification_service/.envs/.local/.django
+    command:
+      - /start
+
+  postgres_notification:
+    image: postgres:16
+    container_name: postgres_notification_local
+    volumes:
+      - postgres_data_notification_local:/var/lib/postgresql/data
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+    ports:
+      - "5433:5432"
+
   mailpit:
     image: docker.io/axllent/mailpit:latest
     container_name: mailpit_local
     ports:
-      - "8025:8025"
+      - "8025:8025" # Web interface
+      - "1025:1025" # SMTP server
 
-  # TODO:   add rest of microservices and db container for each of them
-  #         add rabbitmq
-  #
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_local
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
+
+  nginx:
+    build:
+      context: ./compose/nginx
+    container_name: nginx_local
+    ports:
+      - "80:80"
+    depends_on:
+      - user_management
+      - notification
+      - frontend
 
   frontend:
     image: front-end-i
@@ -51,6 +98,6 @@ services:
       - /app/node_modules
       - ./frontend:/app
 
-
 volumes:
+  postgres_data_notification_local:
   postgres_data_user_management_local:
