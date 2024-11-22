@@ -101,3 +101,36 @@ export const getInstitutions = async (): Promise<{
     return { success: false, error };
   }
 };
+
+export const logout = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      throw new Error("No token found in local storage");
+    }
+
+    const response = await fetch(`${API_URL}logout/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error during logout:", errorData);
+      return { success: false, error: errorData };
+    }
+
+    localStorage.removeItem("authToken");
+
+    return { success: true, message: "Logged out successfully" };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    console.error("Error during logout:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
