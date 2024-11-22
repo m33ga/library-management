@@ -12,6 +12,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    wait-for-it \
+    # Translations dependencies
+    gettext \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,11 +23,18 @@ RUN apt-get update && apt-get install -y \
 COPY requirements/ /app/requirements/
 RUN pip install --upgrade pip && pip install -r /app/requirements/local.txt
 
+
+COPY ./compose/production/django/entrypoint /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint
+RUN chmod +x /entrypoint
+
+COPY ./compose/local/django/start /start
+RUN sed -i 's/\r$//g' /start
+RUN chmod +x /start
+
 # Copy the Django project files into the container
 COPY . /app
 
 # Set up the entrypoint
-ENTRYPOINT ["python", "notification/manage.py"]
+ENTRYPOINT ["/entrypoint"]
 
-# Default command
-CMD ["runserver", "0.0.0.0:8080"]

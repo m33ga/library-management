@@ -35,9 +35,15 @@ ENV PYTHONPATH=/app
 # Set working directory
 WORKDIR /app
 
+RUN addgroup --system django \
+    && adduser --system --ingroup django django
+
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev \
+    wait-for-it \
+    # Translations dependencies
+    gettext \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -45,11 +51,22 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy Django application code
-COPY . /app
+COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint
+RUN chmod +x /entrypoint
 
-# Expose the application port
-EXPOSE 8000
 
-# Set the entrypoint
-ENTRYPOINT ["/bin/sh", "-c", "cd user_management && gunicorn user_management.wsgi:application --bind 0.0.0.0:8080"]
+COPY --chown=django:django ./compose/production/django/start /start
+RUN sed -i 's/\r$//g' /start
+RUN chmod +x /start
+
+
+# copy application code to WORKDIR
+COPY --chown=django:django . /app
+
+# make django owner of the WORKDIR directory as well.
+RUN chown -R django:django /app
+
+USER django
+
+ENTRYPOINT ["/entrypoint"]
