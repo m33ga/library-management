@@ -16,7 +16,6 @@ interface Institution {
   id: number;
   name: string;
 }
-
 export const login = async (credentials: Credentials) => {
   try {
     const response = await fetch(`${API_URL}login/`, {
@@ -34,6 +33,7 @@ export const login = async (credentials: Credentials) => {
     }
 
     const data = await response.json();
+    localStorage.setItem("authToken", data.token);
     return { success: true, data };
   } catch (error) {
     console.error("Error when logging in:", error);
@@ -67,6 +67,7 @@ export const register = async (user: User) => {
     }
 
     const data = await response.json();
+    localStorage.setItem("authToken", data.token);
     return { success: true, data };
   } catch (error) {
     console.error("Error when registering:", error);
