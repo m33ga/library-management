@@ -16,7 +16,6 @@ interface Institution {
   id: number;
   name: string;
 }
-
 export const login = async (credentials: Credentials) => {
   try {
     const response = await fetch(`${API_URL}login/`, {
@@ -34,6 +33,7 @@ export const login = async (credentials: Credentials) => {
     }
 
     const data = await response.json();
+    localStorage.setItem("authToken", data.token);
     return { success: true, data };
   } catch (error) {
     console.error("Error when logging in:", error);
@@ -67,6 +67,7 @@ export const register = async (user: User) => {
     }
 
     const data = await response.json();
+    localStorage.setItem("authToken", data.token);
     return { success: true, data };
   } catch (error) {
     console.error("Error when registering:", error);
@@ -98,5 +99,38 @@ export const getInstitutions = async (): Promise<{
   } catch (error) {
     console.error("Error when fetching institutions:", error);
     return { success: false, error };
+  }
+};
+
+export const logout = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      throw new Error("No token found in local storage");
+    }
+
+    const response = await fetch(`${API_URL}logout/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error during logout:", errorData);
+      return { success: false, error: errorData };
+    }
+
+    localStorage.removeItem("authToken");
+
+    return { success: true, message: "Logged out successfully" };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    console.error("Error during logout:", errorMessage);
+    return { success: false, error: errorMessage };
   }
 };
