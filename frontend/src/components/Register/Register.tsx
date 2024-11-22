@@ -1,25 +1,54 @@
 import "./Register.css";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { register } from "../../services/authServices";
+import { useState, useEffect } from "react";
+import { register, getInstitutions } from "../../services/authServices";
 
-const institutions = [
-  { id: 1, name: "Institution 1" },
-  { id: 2, name: "Institution 2" },
-  { id: 3, name: "Institution 3" },
-];
+interface Institution {
+  id: number;
+  name: string;
+}
 
 export default function Signup() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [institution, setInstitution] = useState(institutions[0].id);
+  const [institution, setInstitution] = useState<number | null>(null);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      try {
+        const result = await getInstitutions();
+        if (result.success && result.data) {
+          setInstitutions(result.data);
+          if (result.data.length > 0) {
+            setInstitution(result.data[0].id);
+          }
+        } else {
+          console.error("Failed to fetch institutions:", result.error);
+          setError("Failed to fetch institutions. Please try again later.");
+        }
+      } catch (err) {
+        console.error("Error fetching institutions:", err);
+        setError("An unexpected error occurred while fetching institutions.");
+      }
+    };
+
+    fetchInstitutions();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!institution) {
+      setError("Please select a valid institution.");
+      return;
+    }
+
     const formData = { username, email, password, institution };
+    console.log("Form Data:", formData);
+
     try {
       const result = await register(formData);
       if (result.success) {
@@ -32,13 +61,13 @@ export default function Signup() {
     } catch (err) {
       console.error("Erro ao registrar:", err);
       if (err instanceof Error) {
-        setError(err.message );
+        setError(err.message);
       } else {
         setError("Erro desconhecido");
       }
     }
   };
-  console.log("1",error);
+
   return (
     <div className="signup-container">
       <h2>Sign Up</h2>
@@ -75,24 +104,27 @@ export default function Signup() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <span>{error}</span>
         </div>
         <div className="form-group">
           <label htmlFor="institution">Institution</label>
           <select
             id="institution"
             name="institution"
-            value={institution}
+            value={institution || ""}
             onChange={(e) => setInstitution(Number(e.target.value))}
             required
           >
-            {institutions.map((institutions) => (
-              <option key={institutions.id} value={institutions.id}>
-                {institutions.name}
+            <option value="" disabled>
+              Select an institution
+            </option>
+            {institutions.map((inst) => (
+              <option key={inst.id} value={inst.id}>
+                {inst.name}
               </option>
             ))}
           </select>
         </div>
+        <span>{error}</span>
         <button type="submit" className="signup-button">
           Sign Up
         </button>
