@@ -5,5 +5,5 @@ set -o pipefail
 set -o nounset
 
 cd notification
-# python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput
 exec gunicorn notification.wsgi:application --bind 0.0.0.0:8080 --chdir=/app
