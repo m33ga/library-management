@@ -1,5 +1,7 @@
 stages:
   - build
+  - push
+  # - deploy
 
 image: docker:latest
 
@@ -9,10 +11,36 @@ services:
 before_script:
   - docker info
 
-
 build:
   stage: build
   script:
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system/sdt_project_group_05:latest -f user_management_service/compose/local/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
+
   tags:
     - docker
+
+push:
+  stage: push
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/frontend:latest
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest
+  tags:
+    - docker
+
+# deploy:
+#   stage: deploy
+#   script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+#     - chmod 700 ~/.ssh/id_rsa 
+#     - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
+#     - scp -r * ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}
+#     - ssh -T ${SSH_USER}@${SSH_HOST} "echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
+#     - ssh -T ${SSH_USER}@${SSH_HOST} "cd /home/$SSH_USER && sudo docker compose down && sudo docker system prune -f -a && sudo docker compose up -f docker-compose.production.yml --build"
+#   tags:
+#     - docker
+

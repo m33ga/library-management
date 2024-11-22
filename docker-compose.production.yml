@@ -1,0 +1,88 @@
+# test production
+services:
+  user_management:
+    # replace image with image from registry
+    build:
+      context: ./user_management_service
+      dockerfile: ./compose/production/django/Dockerfile
+    image: user_management_production
+    container_name: user_management_production
+    depends_on:
+      - postgres_user_management
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./user_management_service/.envs/.production/.postgres
+      - ./user_management_service/.envs/.production/.django
+    command:
+      - /start
+
+  postgres_user_management:
+    image: postgres:16
+    container_name: postgres_user_management_production
+    volumes:
+      - postgres_data_user_management_production:/var/lib/postgresql/data
+    env_file:
+      - ./user_management_service/.envs/.production/.postgres
+    expose:
+      - "5432:5432"
+
+  front-end:
+    image: front-end-i
+    # replace image with image from registry
+    build:
+      context: ./frontend
+      dockerfile: compose/Dockerfile.prod
+    container_name: front_end_c_prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+
+  nginx:
+    # replace image with image from registry
+    build: ./compose/nginx
+    container_name: nginx_production
+    expose:
+      - "80:80"
+    depends_on:
+      - postgres_user_management
+
+  notification:
+    # replace image with image from registry
+    build:
+      context: ./notification_service
+      dockerfile: ./compose/production/django/Dockerfile
+    image: notification_production
+    container_name: notification_production
+    depends_on:
+      - postgres_notification
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./notification_service/.envs/.production/.postgres
+      - ./notification_service/.envs/.production/.django
+    command:
+      - /start
+
+  postgres_notification:
+    image: postgres:16
+    container_name: postgres_notification_production
+    volumes:
+      - postgres_data_notification_production:/var/lib/postgresql/data
+    env_file:
+      - ./notification_service/.envs/.production/.postgres
+    expose:
+      - "5433:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_production
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
+  # TODO:   add rest of microservices and db container for each of them
+
+volumes:
+  postgres_data_user_management_production:
+  postgres_data_notification_production:
