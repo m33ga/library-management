@@ -3,11 +3,16 @@
 from django.db import migrations
 
 
-def add_groups(apps, schema_editor):
+def add_groups_and_institutions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     group_names = ['member', 'staff_member', 'admin']
     for name in group_names:
         Group.objects.get_or_create(name=name)
+
+    Institution = apps.get_model('member_auth', 'Institution')
+    institutions = ['IPB - ESTIG', 'Technical University of Moldova', 'UTFPR']
+    for name in institutions:
+        Institution.objects.get_or_create(name=name)
 
 
 class Migration(migrations.Migration):
@@ -16,5 +21,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_groups),
+        migrations.RunPython(add_groups_and_institutions),
     ]
