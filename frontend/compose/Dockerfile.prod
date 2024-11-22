@@ -1,13 +1,18 @@
 FROM node:18-alpine AS build
 WORKDIR /app
+
+# Copie apenas os arquivos necessários para instalar as dependências
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-# Adicione uma etapa de depuração para listar as dependências instaladas
-RUN ls -la node_modules
-RUN ls -la node_modules/react-scripts
+# Copie o restante dos arquivos do projeto
+COPY frontend/ ./
 
-COPY . .
+# Adicione uma etapa de depuração para listar os arquivos no diretório /app
+RUN ls -la /app
+RUN ls -la /app/public
+
+# Execute o build
 RUN npm run build
 
 FROM nginx
