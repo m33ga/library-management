@@ -1,7 +1,7 @@
 stages:
   - build
   - push
-  - deploy
+  # - deploy
 
 image: docker:latest
 
@@ -28,16 +28,16 @@ push:
   tags:
     - docker
 
-deploy:
-  stage: deploy
-  script:
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 700 ~/.ssh/id_rsa 
-    - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
-    - scp -r * ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}
-    - ssh -T ${SSH_USER}@${SSH_HOST} "echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
-    - ssh -T ${SSH_USER}@${SSH_HOST} "cd /home/$SSH_USER && sudo docker compose down && sudo docker system prune -f -a && sudo docker compose up -f docker-compose.production.yml --build"
-  tags:
-    - docker
+# deploy:
+#   stage: deploy
+#   script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+#     - chmod 700 ~/.ssh/id_rsa 
+#     - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
+#     - scp -r * ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}
+#     - ssh -T ${SSH_USER}@${SSH_HOST} "echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
+#     - ssh -T ${SSH_USER}@${SSH_HOST} "cd /home/$SSH_USER && sudo docker compose down && sudo docker system prune -f -a && sudo docker compose up -f docker-compose.production.yml --build"
+#   tags:
+#     - docker
 
