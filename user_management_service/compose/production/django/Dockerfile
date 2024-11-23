@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pip and dependencies
-COPY requirements/ /app/requirements/
+COPY user_management_service/requirements/ /app/requirements/
 RUN pip install --upgrade pip && pip install --no-cache-dir -r /app/requirements/production.txt
 
 # Copy application code for dependency analysis
@@ -51,12 +51,12 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint
+COPY --chown=django:django ./user_management_service/compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
 RUN chmod +x /entrypoint
 
 
-COPY --chown=django:django ./compose/production/django/start /start
+COPY --chown=django:django ./user_management_service/compose/production/django/start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
 

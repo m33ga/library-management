@@ -1,7 +1,7 @@
 stages:
   - build
   - push
-  - deploy
+  # - deploy
 
 image: docker:latest
 
@@ -14,8 +14,10 @@ before_script:
 build:
   stage: build
   script:
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system/frontend:latest -f frontend/compose/Dockerfile.prod .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
+
   tags:
     - docker
 
@@ -23,8 +25,9 @@ push:
   stage: push
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker push ${CI_REGISTRY}/library_management_system/user_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system/frontend:latest
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/frontend:latest
+    - docker push ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest
   tags:
     - docker
 
