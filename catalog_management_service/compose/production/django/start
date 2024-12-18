@@ -4,6 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-cd notification
+cd catalog_management
 python manage.py collectstatic --noinput
 exec gunicorn catalog_management.wsgi:application --bind 0.0.0.0:8080 --chdir=/app
