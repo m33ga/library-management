@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'book_reservations',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
