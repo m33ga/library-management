@@ -14,3 +14,8 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'reservation_service.settings')
 
 application = get_wsgi_application()
+
+if os.getenv('DEBUG', '0') == '1':
+    from werkzeug.debug import DebuggedApplication
+    application = DebuggedApplication(application, evalex=True)
+

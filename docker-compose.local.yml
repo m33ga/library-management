@@ -101,7 +101,7 @@ services:
       - "8082:8000"
     env_file:
       - ./reservation_service/.envs/.local/.postgres
-      - ./reservation_management_service/.envs/.local/.django
+      - ./reservation_service/.envs/.local/.django
     command:
       - /start
 
