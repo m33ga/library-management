@@ -20,6 +20,9 @@ build:
 
   tags:
     - docker
+  only:
+    - main
+
 
 push:
   stage: push
@@ -30,16 +33,20 @@ push:
     - docker push ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest
   tags:
     - docker
+  only:
+    - main
 
 deploy:
-   stage: deploy
-   script:
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 700 ~/.ssh/id_rsa 
-    - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
-    - ssh $SSH_USER@$SSH_HOST "echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
-    - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
-    - ssh $SSH_USER@$SSH_HOST "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans"
-   tags:
-    - docker
+  stage: deploy
+  script:
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 700 ~/.ssh/id_rsa
+  - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
+  - ssh $SSH_USER@$SSH_HOST "echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin"
+  - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+  - ssh $SSH_USER@$SSH_HOST "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans"
+  tags:
+  - docker
+  only:
+      - main
