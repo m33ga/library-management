@@ -11,9 +11,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
 
-    @action(detail=False, methods=['get'], url_path='active-queue')
-    def active_queue(self, request):
-        book_group_id = request.query_params.get('book_group_id')
+    @action(detail=False, methods=['get'], url_path='book-group/(?P<book_group_id>[^/.]+)/active')
+    def active_queue(self, request,  book_group_id=None):
         if not book_group_id:
             return Response(
                 {"error": "The 'book_group_id' query parameter is required."},
@@ -43,9 +42,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-    @action(detail=False, methods=['get'], url_path='next-in-queue')
-    def next_in_queue(self, request):
-        book_group_id = request.query_params.get('book_group_id')
+    @action(detail=False, methods=['get'], url_path='book-group/(?P<book_group_id>[^/.]+)/next')
+    def next_in_queue(self, request, book_group_id=None):
 
         if not book_group_id:
             return Response(
@@ -62,7 +60,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             )
 
         filters = {'status': ReservationStatus.PENDING}
-        if book_group_id:
+        if book_group_id is not None:
             filters['book_group_id'] = book_group_id
 
         next_reservation = self.queryset.filter(**filters).order_by('reservation_date').first()
@@ -77,9 +75,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-    @action(detail=False, methods=['get'], url_path='queue-length')
-    def queue_length(self, request):
-        book_group_id = request.query_params.get('book_group_id')
+    @action(detail=False, methods=['get'], url_path='book-group/(?P<book_group_id>[^/.]+)/count')
+    def queue_length(self, request, book_group_id=None):
 
         if not book_group_id:
             return Response(
@@ -96,7 +93,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             )
 
         filters = {'status': ReservationStatus.PENDING}
-        if book_group_id:
+        if book_group_id is not None:
             filters['book_group_id'] = book_group_id
 
         queue_length = self.queryset.filter(**filters).count()
@@ -108,9 +105,46 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-    @action(detail=False, methods=['get'], url_path='reservations-for-member')
-    def reservations_for_member(self, request):
-        member_id = request.query_params.get('member_id')
+    @action(detail=False, methods=['get'], url_path='member/(?P<member_id>[^/.]+)/active')
+    def active_reservations_for_member(self, request, member_id=None):
+
+        if not member_id:
+            return Response(
+                {"error": "The 'member_id' query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            member_id = int(member_id)
+        except ValueError:
+            return Response(
+                {"error": "The 'member_id' query parameter must be a valid integer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        filters = {'status': ReservationStatus.PENDING}
+        if member_id is not None:
+            filters['member_id'] = member_id
+
+        member_reservations = self.queryset.filter(**filters)
+        if not member_reservations.exists():
+            return Response(
+                {"message": f"No reservations found for member_id: {member_id}."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(member_reservations, many=True)
+        return Response(
+            {
+                "member_id": member_id,
+                "reservations": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+    @action(detail=False, methods=['get'], url_path='member/(?P<member_id>[^/.]+)/all')
+    def all_reservations_for_member(self, request, member_id=None):
 
         if not member_id:
             return Response(
@@ -142,9 +176,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=['get'], url_path='reservations-for-book-group')
-    def reservations_for_book_group(self, request):
-        book_group_id = request.query_params.get('book_group_id')
+    @action(detail=False, methods=['get'], url_path='book-group/(?P<book_group_id>[^/.]+)/all')
+    def reservations_for_book_group(self, request, book_group_id=None):
 
         if not book_group_id:
             return Response(
