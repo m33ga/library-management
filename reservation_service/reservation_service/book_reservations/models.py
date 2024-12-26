@@ -1,6 +1,4 @@
 from django.db import models
-
-# Create your models here.
 from django.utils.timezone import now
 
 class ReservationStatus(models.TextChoices):
@@ -33,6 +31,7 @@ class Reservation(models.Model):
         null=True,
         blank=True
     )
+
     def __str__(self):
         return f"{self.member} reserved {self.book_group}"
 
