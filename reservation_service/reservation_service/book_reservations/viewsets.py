@@ -5,7 +5,7 @@ from .serializers import ReservationSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from django.utils.timezone import now
+from django.utils.timezone import now, timedelta
 from rest_framework.exceptions import ValidationError
 
 
@@ -269,3 +269,46 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 {"error": "Reservation not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+    @action(detail=False, methods=['post'], url_path='book-group/(?P<book_group_id>[^/.]+)/notify-next')
+    def notify_next_in_queue(self, request, book_group_id=None):
+
+        if not book_group_id:
+            return Response(
+                {"error": "The 'book_group_id' field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        next_reservation = (
+            self.queryset
+            .filter(
+                book_group_id=book_group_id,
+                status=ReservationStatus.PENDING
+            )
+            .order_by('reservation_date')
+            .first()
+        )
+
+        if not next_reservation:
+            return Response(
+                {"message": "No pending reservations found for this book group."},
+                status=status.HTTP_200_OK
+            )
+
+        next_reservation.status = ReservationStatus.NOTIFIED
+        next_reservation.notification_datetime = now()
+        next_reservation.response_deadline = next_reservation.notification_datetime + timedelta(hours=3)
+        next_reservation.save()
+
+        # TODO: Implement Celery task for sending notifications
+        # TODO: create cron job for handling non-response in 3 hours
+        # TODO: accept reservation and create loan
+        # TODO: cancel reservation
+
+        # send_notification.delay(next_reservation.id)
+
+        return Response(
+            {"message": f"User notified for reservation {next_reservation.id}."},
+            status=status.HTTP_200_OK
+        )
