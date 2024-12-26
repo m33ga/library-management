@@ -5,11 +5,41 @@ from .serializers import ReservationSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils.timezone import now
+from rest_framework.exceptions import ValidationError
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
+
+
+    def perform_create(self, serializer):
+        member_id = serializer.validated_data['member_id']
+        book_group_id = serializer.validated_data['book_group_id']
+
+        existing_reservation = Reservation.objects.filter(
+            member_id=member_id,
+            book_group_id=book_group_id,
+            status__in=[ReservationStatus.PENDING, ReservationStatus.NOTIFIED]
+        ).exists()
+        if existing_reservation:
+            raise ValidationError(
+                {"error": "You already have an active reservation for this book group."}
+            )
+
+        active_reservations_count = Reservation.objects.filter(
+            member_id=member_id,
+            status__in=[ReservationStatus.PENDING, ReservationStatus.NOTIFIED]
+        ).count()
+
+        if active_reservations_count >= 10:
+            raise ValidationError(
+                {"error": "You cannot have more than 10 active reservations."}
+            )
+
+        serializer.save(reservation_date=now())
+
 
     @action(detail=False, methods=['get'], url_path='book-group/(?P<book_group_id>[^/.]+)/active')
     def active_queue(self, request,  book_group_id=None):
@@ -209,3 +239,33 @@ class ReservationViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
+
+    @action(detail=True, methods=['post'], url_path='skip-turn')
+    def skip_turn(self, request, pk=None):
+        try:
+            current_reservation = self.get_object()
+
+            if current_reservation.status != ReservationStatus.PENDING:
+                return Response(
+                    {"error": "Only pending reservations can be skipped."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            current_reservation.status = ReservationStatus.CANCELED
+            current_reservation.save()
+
+            new_reservation = Reservation.objects.create(
+                member_id=current_reservation.member_id,
+                book_group_id=current_reservation.book_group_id,
+                status=ReservationStatus.PENDING,
+                reservation_date=now()
+            )
+
+            serializer = self.get_serializer(new_reservation)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Reservation.DoesNotExist:
+            return Response(
+                {"error": "Reservation not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
