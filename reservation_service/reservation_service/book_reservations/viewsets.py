@@ -1,13 +1,14 @@
 from rest_framework import viewsets
 from .models import Reservation
-from .models import ReservationStatus
+from .models import ReservationStatus, UserResponseChoices
 from .serializers import ReservationSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils.timezone import now, timedelta
 from rest_framework.exceptions import ValidationError
-
+from itsdangerous import URLSafeTimedSerializer, BadData
+from django.conf import settings
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
@@ -240,37 +241,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
 
 
-    @action(detail=True, methods=['post'], url_path='skip-turn')
-    def skip_turn(self, request, pk=None):
-        try:
-            current_reservation = self.get_object()
-
-            if current_reservation.status != ReservationStatus.PENDING:
-                return Response(
-                    {"error": "Only pending reservations can be skipped."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            current_reservation.status = ReservationStatus.CANCELED
-            current_reservation.save()
-
-            new_reservation = Reservation.objects.create(
-                member_id=current_reservation.member_id,
-                book_group_id=current_reservation.book_group_id,
-                status=ReservationStatus.PENDING,
-                reservation_date=now()
-            )
-
-            serializer = self.get_serializer(new_reservation)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        except Reservation.DoesNotExist:
-            return Response(
-                {"error": "Reservation not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-
     @action(detail=False, methods=['post'], url_path='book-group/(?P<book_group_id>[^/.]+)/notify-next')
     def notify_next_in_queue(self, request, book_group_id=None):
 
@@ -301,7 +271,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         next_reservation.response_deadline = next_reservation.notification_datetime + timedelta(hours=3)
         next_reservation.save()
 
-        # TODO: Implement Celery task for sending notifications
+        # TODO: Implement Celery task for sending notifications to notif service
         # TODO: create cron job for handling non-response in 3 hours
         # TODO: accept reservation and create loan
         # TODO: cancel reservation
@@ -312,3 +282,67 @@ class ReservationViewSet(viewsets.ModelViewSet):
             {"message": f"User notified for reservation {next_reservation.id}."},
             status=status.HTTP_200_OK
         )
+
+
+    def _validate_token(self, token):
+        serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+        try:
+            data = serializer.loads(token, max_age=10800)  # Token valid for 3 hours
+            return data
+        except BadData:
+            return None
+
+
+    @action(detail=False, methods=['post'], url_path='skip')
+    def skip_reservation(self, request):
+        token = request.query_params.get('token')
+        data = self._validate_token(token)
+
+        if not data:
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation_id = data['reservation_id']
+        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+
+        if reservation.status != ReservationStatus.NOTIFIED:
+            return Response({"error": "Reservation cannot be skipped in its current state."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation.status = ReservationStatus.CANCELED
+        reservation.user_response = UserResponseChoices.SKIP
+        reservation.save()
+
+        Reservation.objects.create(
+            member_id=reservation.member_id,
+            book_group_id=reservation.book_group_id,
+            status=ReservationStatus.PENDING,
+            reservation_date=now()
+        )
+
+        # TODO: trigger notify next in queue
+        # here
+
+        return Response({"message": "Reservation skipped successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='accept')
+    def accept_reservation(self, request):
+        token = request.query_params.get('token')
+        data = self._validate_token(token)
+
+        if not data:
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation_id = data['reservation_id']
+        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+
+        if reservation.status != ReservationStatus.NOTIFIED:
+            return Response({"error": "Reservation cannot be accepted in its current state."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation.status = ReservationStatus.ACCEPTED
+        reservation.user_response = UserResponseChoices.ACCEPT
+        reservation.save()
+
+        # TODO: Trigger the loan microservice to create a loan
+        # here
+
+        return Response({"message": "Reservation accepted successfully."}, status=status.HTTP_200_OK)
+
