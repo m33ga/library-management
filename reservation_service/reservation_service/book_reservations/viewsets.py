@@ -273,8 +273,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # TODO: Implement Celery task for sending notifications to notif service
         # TODO: create cron job for handling non-response in 3 hours
-        # TODO: accept reservation and create loan
-        # TODO: cancel reservation
+        # DONE: accept reservation and create loan
+        # DONE: cancel reservation
 
         # send_notification.delay(next_reservation.id)
 
@@ -345,4 +345,28 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # here
 
         return Response({"message": "Reservation accepted successfully."}, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=['post'], url_path='cancel')
+    def cancel_reservation(self, request):
+        token = request.query_params.get('token')
+        data = self._validate_token(token)
+
+        if not data:
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation_id = data['reservation_id']
+        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+
+        if reservation.status not in [ReservationStatus.NOTIFIED, ReservationStatus.PENDING]:
+            return Response({"error": "Reservation cannot be canceled in its current state."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation.status = ReservationStatus.CANCELED
+        reservation.user_response = UserResponseChoices.CANCEL
+        reservation.save()
+
+        # TODO: trigger notify the next in queue
+        # here
+
+        return Response({"message": "Reservation canceled successfully."}, status=status.HTTP_200_OK)
 
