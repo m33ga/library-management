@@ -102,6 +102,7 @@ services:
     env_file:
       - ./reservation_service/.envs/.local/.postgres
       - ./reservation_service/.envs/.local/.django
+      - ./.envs/.local/.env.rabbitmq
     command:
       - /start
 
