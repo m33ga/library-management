@@ -13,18 +13,25 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-load_dotenv()
+
+dotenv_path = os.path.join("catalog_management_service/.envs/.local/.postgres")  
+load_dotenv(dotenv_path=dotenv_path)
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(" ")
+
+print("SECRET_KEY:", os.environ.get("SECRET_KEY"))
+print("ALLOWED_HOSTS:", os.environ.get("DJANGO_ALLOWED_HOSTS"))
+print("POSTGRES_DB:", os.environ.get("POSTGRES_DB"))
+
 
 
 # Debugger definition
