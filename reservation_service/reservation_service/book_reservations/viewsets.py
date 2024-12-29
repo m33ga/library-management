@@ -1,14 +1,16 @@
-from rest_framework import viewsets
-from .models import Reservation
-from .models import ReservationStatus, UserResponseChoices
-from .serializers import ReservationSerializer
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
-from django.utils.timezone import now, timedelta
 from rest_framework.exceptions import ValidationError
+from .models import Reservation, ReservationStatus, UserResponseChoices
+from .serializers import ReservationSerializer
+from .tasks import publish_notification
 from itsdangerous import URLSafeTimedSerializer, BadData
+from django.utils.timezone import now, timedelta
+from django.shortcuts import get_object_or_404
 from django.conf import settings
+from .utils import generate_action_link
+
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
@@ -278,8 +280,40 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # send_notification.delay(next_reservation.id)
 
+        accept_link = generate_action_link('accept', next_reservation.id)
+        cancel_link = generate_action_link('cancel', next_reservation.id)
+        skip_link = generate_action_link('skip', next_reservation.id)
+
+
+        # member_email = get_member_email(next_reservation.member_id)
+        member_email = '123@123.com' # temp
+
+        # TODO: get member email from user management service by ID
+
+        publish_notification.delay(
+            payload={
+                'reservation_id': next_reservation.id,
+                'book_group_id': book_group_id,
+                'user_email': member_email,
+                'links': {
+                    'accept': accept_link,
+                    'skip': skip_link,
+                    'cancel': cancel_link
+                },
+            },
+            routing_key='reservation.notify'
+        )
+
         return Response(
-            {"message": f"User notified for reservation {next_reservation.id}."},
+            {
+                "message": f"User notified for reservation {next_reservation.id}.",
+                # testing links
+                'links': {
+                    'accept': accept_link,
+                    'skip': skip_link,
+                    'cancel': cancel_link
+                },
+             },
             status=status.HTTP_200_OK
         )
 
@@ -302,7 +336,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
         reservation_id = data['reservation_id']
-        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+        reservation = get_object_or_404(Reservation, id=reservation_id)
 
         if reservation.status != ReservationStatus.NOTIFIED:
             return Response({"error": "Reservation cannot be skipped in its current state."}, status=status.HTTP_400_BAD_REQUEST)
@@ -332,7 +366,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
         reservation_id = data['reservation_id']
-        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+        reservation = get_object_or_404(Reservation, id=reservation_id)
 
         if reservation.status != ReservationStatus.NOTIFIED:
             return Response({"error": "Reservation cannot be accepted in its current state."}, status=status.HTTP_400_BAD_REQUEST)
@@ -356,7 +390,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
         reservation_id = data['reservation_id']
-        reservation = self.get_object_or_404(Reservation, id=reservation_id)
+        reservation = get_object_or_404(Reservation, id=reservation_id)
 
         if reservation.status not in [ReservationStatus.NOTIFIED, ReservationStatus.PENDING]:
             return Response({"error": "Reservation cannot be canceled in its current state."}, status=status.HTTP_400_BAD_REQUEST)
