@@ -13,7 +13,27 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import environ
+
 load_dotenv()
+
+
+env = environ.Env()
+environ.Env.read_env()
+
+
+RABBITMQ_USER = env('RABBITMQ_USER')
+RABBITMQ_PASS = env('RABBITMQ_PASS')
+RABBITMQ_HOST = env('RABBITMQ_HOST')
+RABBITMQ_PORT = env.int('RABBITMQ_PORT', default=5672)
+RABBITMQ_VHOST = env('RABBITMQ_VHOST', default='/')
+RABBITMQ_EXCHANGE = env('RABBITMQ_EXCHANGE', default='reservation_notifications')
+
+# Celery settings
+CELERY_BROKER_URL = f'amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = None
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,6 +47,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+
+# RabbitMQ
+# RABBITMQ_USER = os.getenv('RABBITMQ_USER')
+# RABBITMQ_PASS = os.getenv('RABBITMQ_PASS')
+# RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
+# RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT', 5672))
+# RABBITMQ_VHOST = os.getenv('RABBITMQ_VHOST', '/')
+# RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', 'reservation_notifications')
 
 # Application definition
 
