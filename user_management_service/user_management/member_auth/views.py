@@ -1,16 +1,45 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from rest_framework.authtoken.models import Token
 from user_management.serializers import UserSerializer, InstitutionSerializer
 from member_auth.models import Institution
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-# Not authentificated views
+# Helper function to generate JWT tokens
+def get_tokens_for_user(user):
+    # Create refresh token
+    refresh = RefreshToken.for_user(user)
+
+    # Adding custom claims to the tokens
+    refresh.payload['username'] = user.username
+    refresh.payload['email'] = user.email
+    refresh.payload['groups'] = [{'id': group.id, 'name': group.name} for group in user.groups.all()]
+    
+    # Including institution data
+    profile = user.profile
+    institution_data = {
+        "id": profile.institution.id if profile.institution else None,
+        "name": profile.institution.name if profile.institution else None
+    }
+    refresh.payload['institution'] = institution_data
+
+    # Access token carries the same information
+    access_token = refresh.access_token
+    access_token.payload['username'] = user.username
+    access_token.payload['email'] = user.email
+    access_token.payload['groups'] = [{'id': group.id, 'name': group.name} for group in user.groups.all()]
+    access_token.payload['institution'] = institution_data
+
+    return {
+        'refresh': str(refresh),
+        'access': str(access_token),
+    }
 
 # - list_institutions: Returns a list of all institutions.
 @api_view(['GET'])
@@ -19,37 +48,21 @@ def list_institutions(request):
     serializer = InstitutionSerializer(institutions, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-# - login: Authenticates a user and returns a token, user data, group info, and institution.
+# - login: Authenticates a user and returns JWT tokens, user data, group info, and institution.
 @api_view(['POST'])
 def login(request):
     user = get_object_or_404(User, email=request.data['email'])
-    
+
     if not user.check_password(request.data['password']):
         return Response("Invalid credentials", status=status.HTTP_404_NOT_FOUND)
-    
-    token, created = Token.objects.get_or_create(user=user)
-    
-    groups = user.groups.all()
-    group_data = [{'id': group.id, 'name': group.name} for group in groups]
 
-    serializer = UserSerializer(user)
-
-    profile = user.profile
-    institution_data = {
-        "id": profile.institution.id if profile.institution else None,
-        "name": profile.institution.name if profile.institution else None
-    }
+    tokens = get_tokens_for_user(user)
 
     return Response({
-        'token': token.key,
-        'user': serializer.data,
-        'groups': group_data,
-        'institution': institution_data
+        'tokens': tokens
     })
 
-
-# - signup: Registers a new user, creates their profile, assigns institution info and returns a token, user data, group info, and institution.
+# - signup: Registers a new user, creates their profile, assigns institution info, and returns JWT tokens, user data, group info, and institution.
 @api_view(['POST'])
 def signup(request):
     serializer = UserSerializer(data=request.data)
@@ -58,43 +71,30 @@ def signup(request):
         user = User.objects.get(username=request.data['username'])
         user.set_password(request.data['password'])
         user.save()
-        token = Token.objects.create(user=user)
 
-        profile = user.profile
-        institution_data = {
-            "id": profile.institution.id if profile.institution else None,
-            "name": profile.institution.name if profile.institution else None
-        }
-        groups = user.groups.all()
-        group_data = [{'id': group.id, 'name': group.name} for group in groups]
+        tokens = get_tokens_for_user(user)
 
         return Response({
-            'token': token.key,
-            'user': serializer.data,
-            'groups': group_data,
-            'institution': institution_data
+            'tokens': tokens
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # Basic Member Views
 
 # - test_token: Verifies the token and returns user, group, and institution information.
 @api_view(['GET'])
-@authentication_classes([SessionAuthentication, TokenAuthentication])
+@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def test_token(request):
-
+    # The `request.user` will be populated with the user info from the token
     serializer = UserSerializer(request.user)
-    
+
+    # Get user groups from the token
     groups = request.user.groups.all()
     group_data = [{'id': group.id, 'name': group.name} for group in groups]
-    
-    profile = request.user.profile
-    institution_data = {
-        "id": profile.institution.id if profile.institution else None,
-        "name": profile.institution.name if profile.institution else None
-    }
+
+    # Accessing the custom claims like institution
+    institution_data = request.user.profile.institution if hasattr(request.user, 'profile') else None
 
     return Response({
         'user': serializer.data,
@@ -102,25 +102,10 @@ def test_token(request):
         'institution': institution_data
     }, status=status.HTTP_200_OK)
 
-
-# - logout: Logs out a user by deleting their token.
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-def logout(request):
-    try:
-        token = Token.objects.get(user=request.user)
-        token.delete()
-        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
-    except Token.DoesNotExist:
-        return Response({"error": "Token not found"}, status=status.HTTP_400_BAD_REQUEST)
-
-
 # Admin Views
 
 # - create_institution: Allows admins to create a new institution.
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def create_institution(request):
     # The ID 3 is the admin role
@@ -129,18 +114,16 @@ def create_institution(request):
             {"error": "You do not have permission to perform this action."},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     serializer = InstitutionSerializer(data=request.data)
     if serializer.is_valid():
         institution = serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # - change_user_institution: Allows admins to update the institution for a specific user.
 @api_view(['PUT'])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def change_user_institution(request):
     if not request.user.groups.filter(id=3).exists():
