@@ -10,6 +10,8 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py collectstatic --noinput
 
-celery -A reservation_service worker --loglevel=info &
+# python manage.py schedule_tasks
 
+celery -A reservation_service worker --loglevel=info &
+# celery -A reservation_service beat --loglevel=info &
 exec python manage.py runserver_plus 0.0.0.0:8000 --reloader-type stat
