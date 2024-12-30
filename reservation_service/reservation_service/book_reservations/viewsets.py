@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from .models import Reservation, ReservationStatus, UserResponseChoices
 from .serializers import ReservationSerializer
-from .tasks import publish_notification
+from .utils import publish_notification
 from itsdangerous import URLSafeTimedSerializer, BadData
 from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404

@@ -1,31 +1,26 @@
-# reservations/tasks.py
 from celery import shared_task
 import json
 from kombu import Connection, Exchange, Producer
 import os
 from django.conf import settings
+from django.utils.timezone import now
+from book_reservations.models import Reservation, ReservationStatus
+from  .viewsets import ReservationViewSet
+from .utils import publish_notification
+
 
 @shared_task
-def publish_notification(payload, routing_key):
+def check_expired_reservations():
 
-    # broker_url = os.getenv('CELERY_BROKER_URL')
-    # exchange_name = os.getenv('RABBITMQ_EXCHANGE')
+    expired_reservations = Reservation.objects.filter(
+        status=ReservationStatus.NOTIFIED,
+        response_deadline__lt=now()
+    )
 
-    broker_url = settings.CELERY_BROKER_URL
-    exchange_name = settings.RABBITMQ_EXCHANGE
+    for reservation in expired_reservations:
+        reservation.status = ReservationStatus.EXPIRED
+        reservation.save()
 
-    with Connection(broker_url) as connection:
-        channel = connection.channel()
-        exchange = Exchange(exchange_name, type='topic', durable=True)
-        producer = Producer(channel, exchange, serializer='json')
 
-        producer.publish(
-            payload,
-            routing_key=routing_key,
-            retry=True,
-            retry_policy={
-                'interval_start': 0,
-                'interval_step': 2,
-                'interval_max': 30,
-            }
-        )
+        if reservation.book_group_id:
+            ReservationViewSet()._notify_next_in_queue_logic(reservation.book_group_id)
