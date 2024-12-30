@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+
+cd reservation_service
+python manage.py makemigrations
+python manage.py migrate
+python manage.py collectstatic --noinput
+
+celery -A reservation_service worker --loglevel=info &
+
+exec python manage.py runserver_plus 0.0.0.0:8000 --reloader-type stat

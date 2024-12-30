@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+cd reservation_service
+python manage.py collectstatic --noinput
+exec gunicorn reservation_service.wsgi:application --bind 0.0.0.0:8000 --chdir=/app
