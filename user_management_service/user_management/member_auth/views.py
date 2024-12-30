@@ -10,6 +10,9 @@ from user_management.serializers import UserSerializer, InstitutionSerializer
 from member_auth.models import Institution
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import BasePermission
+from rest_framework.permissions import AllowAny 
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 # Helper function to generate JWT tokens
 def get_tokens_for_user(user):
@@ -41,6 +44,26 @@ def get_tokens_for_user(user):
         'access': str(access_token),
     }
 
+class HasAdminPermission(BasePermission):
+    def has_permission(self, request, view):
+        # Extract the token from the Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return False
+
+        token = auth_header.split(' ')[1]  # Extract token part
+        try:
+            jwt_authenticator = JWTAuthentication()
+            validated_token = jwt_authenticator.get_validated_token(token)  # Validate token
+            token_payload = validated_token.payload
+            groups = token_payload.get('groups', [])
+            return any(group.get('name') == 'admin' for group in groups)
+
+        except InvalidToken as e:
+            return False
+        except Exception as e:
+            return False
+
 # - list_institutions: Returns a list of all institutions.
 @api_view(['GET'])
 def list_institutions(request):
@@ -50,6 +73,7 @@ def list_institutions(request):
 
 # - login: Authenticates a user and returns JWT tokens, user data, group info, and institution.
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
     user = get_object_or_404(User, email=request.data['email'])
 
@@ -64,6 +88,7 @@ def login(request):
 
 # - signup: Registers a new user, creates their profile, assigns institution info, and returns JWT tokens, user data, group info, and institution.
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def signup(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
@@ -81,40 +106,40 @@ def signup(request):
 
 # Basic Member Views
 
-# - test_token: Verifies the token and returns user, group, and institution information.
+# - decode_token: Verifies the token and returns user, group, and institution information.
 @api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def test_token(request):
-    # The `request.user` will be populated with the user info from the token
-    serializer = UserSerializer(request.user)
+@authentication_classes([JWTAuthentication]) 
+@permission_classes([IsAuthenticated])      
+def decode_token(request):
+    if not request.user.is_authenticated:
+        return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Get user groups from the token
-    groups = request.user.groups.all()
-    group_data = [{'id': group.id, 'name': group.name} for group in groups]
+    # Retrieve user and institution data from the JWT payload
+    user_data = {
+        'id': request.user.id,
+        'username': request.user.username,
+        'email': request.user.email,
+        'groups': [{'id': group.id, 'name': group.name} for group in request.user.groups.all()],
+    }
 
-    # Accessing the custom claims like institution
-    institution_data = request.user.profile.institution if hasattr(request.user, 'profile') else None
+    # Retrieve institution info from the JWT token (this is already included in the payload)
+    institution_data = {
+        'id': request.user.profile.institution.id if request.user.profile.institution else None,
+        'name': request.user.profile.institution.name if request.user.profile.institution else None
+    }
 
+    # Return user data along with institution info
     return Response({
-        'user': serializer.data,
-        'groups': group_data,
-        'institution': institution_data
+        'user': user_data,
+        'institution': institution_data,
     }, status=status.HTTP_200_OK)
 
 # Admin Views
 
-# - create_institution: Allows admins to create a new institution.
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated, HasAdminPermission])
 def create_institution(request):
-    # The ID 3 is the admin role
-    if not request.user.groups.filter(id=3).exists():
-        return Response(
-            {"error": "You do not have permission to perform this action."},
-            status=status.HTTP_403_FORBIDDEN
-        )
-
     serializer = InstitutionSerializer(data=request.data)
     if serializer.is_valid():
         institution = serializer.save()
@@ -124,14 +149,9 @@ def create_institution(request):
 
 # - change_user_institution: Allows admins to update the institution for a specific user.
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated, HasAdminPermission])
 def change_user_institution(request):
-    if not request.user.groups.filter(id=3).exists():
-        return Response(
-            {"error": "You do not have permission to perform this action."},
-            status=status.HTTP_403_FORBIDDEN
-        )
-
     user_id = request.data.get('user_id')
     new_institution_id = request.data.get('institution_id')
 
