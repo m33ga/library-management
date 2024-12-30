@@ -24,6 +24,7 @@ itsdangerous==2.2.0
 pika
 kombu
 celery
+django-celery-beat
 importlib-metadata==6.5.0
 
 
