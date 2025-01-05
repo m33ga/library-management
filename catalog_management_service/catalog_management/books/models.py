@@ -25,36 +25,27 @@ class Author(models.Model):
 class Book(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="books")
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, related_name="books")
+    author = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True, related_name="books")
     title = models.CharField(max_length=255)
     release_year = models.PositiveIntegerField()
-    total_books = models.PositiveIntegerField(default=0)
-    available_books = models.PositiveIntegerField(default=0)
+    total_books = models.PositiveIntegerField(default=1)
+    available_books = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return self.title
 
-# Tabela intermediária BookAuthor (relacionamento muitos-para-muitos entre livros e autores)
-class BookAuthor(models.Model):
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="authors")
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
-
-    class Meta:
-        unique_together = ("book", "author")
-
-    def __str__(self):
-        return f"{self.book.title} - {self.author.name}"
-
-# Tabela BookStatus (status de cópias de livros)
-class BookStatus(models.Model):
-    status = models.CharField(max_length=255)  # Ex: Disponível, Emprestado, Reservado
-
-    def __str__(self):
-        return self.status
+class ReservationStatus(models.TextChoices):
+    AVAILABLE = 'available', 'Available'
+    RESERVED = 'reserved', 'Reserved'
 
 # Tabela BookCopy (cópias físicas dos livros)
 class BookCopy(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="copies")
-    status = models.ForeignKey(BookStatus, on_delete=models.SET_NULL, null=True, related_name="copies")
+    status = models.CharField(
+        max_length=10,
+        choices=ReservationStatus.choices,
+        default=ReservationStatus.AVAILABLE,
+    )
 
     def __str__(self):
         return f"Cópia de '{self.book.title}' - Status: {self.status}"
