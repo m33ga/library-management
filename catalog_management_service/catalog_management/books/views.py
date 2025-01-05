@@ -1,4 +1,7 @@
 from rest_framework import viewsets
+from rest_framework.decorators import api_view
+from rest_framework import status
+from rest_framework.response import Response
 from .models import Book, Author, Institution, Genre, BookCopy
 from .serializers import BookSerializer, InstitutionSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
 
@@ -22,5 +25,45 @@ class BookCopyViewSet(viewsets.ModelViewSet):
     queryset = BookCopy.objects.all()
     serializer_class = BookCopySerializer
 
+@api_view(['POST'])
+def books_by_author(request):
+    author_name = request.data.get('author_name')
+    if not author_name:
+        return Response({"error": "Author name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        author = Author.objects.get(name__iexact=author_name)
+    except Author.DoesNotExist:
+        return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    books = Book.objects.filter(author=author)
+    serializer = BookSerializer(books, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def books_by_title(request):
+    title = request.data.get('title')
+    if not title:
+        return Response({"error": "Title is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    books = Book.objects.filter(title__iexact=title)
+    if not books.exists():
+        return Response({"error": "No books found with this title"}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = BookSerializer(books, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def books_by_institution(request):
+    institution_name = request.data.get('institution_name')
+    if not institution_name:
+        return Response({"error": "Institution name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        institution = Institution.objects.get(name__iexact=institution_name)
+    except Institution.DoesNotExist:
+        return Response({"error": "Institution not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    books = Book.objects.filter(institution=institution)
+    serializer = BookSerializer(books, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
