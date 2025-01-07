@@ -3,6 +3,11 @@ from django.contrib.auth.models import User, Group
 from rest_framework.validators import UniqueValidator
 from member_auth.models import Institution, UserProfile
 
+class InstitutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Institution
+        fields = ['id', 'name']
+
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True,
@@ -10,13 +15,13 @@ class UserSerializer(serializers.ModelSerializer):
     )
     password = serializers.CharField(write_only=True, required=True)
     institution_id = serializers.IntegerField(write_only=True, required=True)
+    institution = InstitutionSerializer(read_only=True)  # Nested serializer for Institution
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'email', 'institution_id']
+        fields = ['id', 'username', 'password', 'email', 'institution_id', 'institution']
 
     def create(self, validated_data):
-
         institution_id = validated_data.pop('institution_id')
         user = super().create(validated_data)
         member_group = Group.objects.get(name='member')
@@ -25,9 +30,3 @@ class UserSerializer(serializers.ModelSerializer):
         UserProfile.objects.create(user=user, institution=institution)
 
         return user
-
-
-class InstitutionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Institution
-        fields = ['id', 'name']
