@@ -132,8 +132,8 @@ services:
     env_file:
       - ./loan_service/.envs/.local/.postgres
       - ./loan_service/.envs/.local/.django
-    command:
-      - /start
+    command: >
+      sh -c "./wait-for-it.sh postgres_loan:5432 -- /start"
   
   postgres_loan:
     image: postgres:16
