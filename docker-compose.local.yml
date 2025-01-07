@@ -115,6 +115,35 @@ services:
       - ./reservation_service/.envs/.local/.postgres
     ports:
       - "5435:5432"
+  
+  loan:
+    build:
+      context: ./loan_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: loan_local
+    container_name: loan_local
+    depends_on:
+      - postgres_loan
+      - rabbitmq
+    volumes:
+      - ./loan_service:/app
+    ports:
+      - "8083:8000"
+    env_file:
+      - ./loan_service/.envs/.local/.postgres
+      - ./loan_service/.envs/.local/.django
+    command:
+      - /start
+  
+  postgres_loan:
+    image: postgres:16
+    container_name: postgres_loan_local
+    volumes:
+      - postgres_data_loan_local:/var/lib/postgresql/data
+    env_file:
+      - ./loan_service/.envs/.local/.postgres
+    ports:
+      - "5436:5432"
 
   mailpit:
     image: docker.io/axllent/mailpit:latest
@@ -164,3 +193,4 @@ volumes:
   postgres_data_user_management_local:
   postgres_data_catalog_local:
   postgres_data_reservation_local:
+  postgres_data_loan_local:
