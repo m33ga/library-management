@@ -37,4 +37,3 @@ COPY . /app
 
 # Set up the entrypoint
 ENTRYPOINT ["/entrypoint"]
-

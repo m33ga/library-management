@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-cd loan_service
+cd loan
 python manage.py migrate
 python manage.py collectstatic --noinput
 

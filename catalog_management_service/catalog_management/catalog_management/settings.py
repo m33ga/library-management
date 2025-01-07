@@ -28,36 +28,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(" ")
 
-print("SECRET_KEY:", os.environ.get("SECRET_KEY"))
-print("ALLOWED_HOSTS:", os.environ.get("DJANGO_ALLOWED_HOSTS"))
-print("POSTGRES_DB:", os.environ.get("POSTGRES_DB"))
-
-
-
-# Debugger definition
-# if DEBUG:
-#     RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8000'
-#     LOGGING = {
-
-#         'handlers': {
-
-#             'console': {
-#                 'level': 'DEBUG',
-#                 'class': 'logging.StreamHandler',
-#             },
-#         },
-#         'loggers': {
-
-#             'werkzeug': {
-#                 'handlers': ['console'],
-#                 'level': 'DEBUG',
-#                 'propagate': True,
-#             },
-#         },
-#     }
-
-# Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -147,10 +117,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -177,8 +143,5 @@ REST_FRAMEWORK = {
     ),
     'TEST_REQUEST_DEFAULT_FORMAT': 'application/json'
 }
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
