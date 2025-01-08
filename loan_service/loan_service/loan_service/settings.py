@@ -27,16 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(" ")
-print("-----------------\n")
-print("ALLOWED_HOSTS: ", ALLOWED_HOSTS)
-print("DEBUG: ", DEBUG)
-print("SECRET_KEY: ", SECRET_KEY)
-print("POSTGRES_DB: ", os.getenv('POSTGRES_DB', 'your_default_db_name'))
-print("POSTGRES_USER: ", os.getenv('POSTGRES_USER', 'your_default_username'))
-print("POSTGRES_PASSWORD: ", os.getenv('POSTGRES_PASSWORD', 'your_default_password'))
-print("POSTGRES_HOST: ", os.getenv('POSTGRES_HOST', 'localhost'))
-print("POSTGRES_PORT: ", os.getenv('POSTGRES_PORT', '5432'))
-print("-----------------\n")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -49,7 +40,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django_filters',
     'rest_framework',
-    'loan'
+    'loan',
 ]
 
 MIDDLEWARE = [
