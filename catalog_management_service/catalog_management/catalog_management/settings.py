@@ -28,6 +28,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(" ")
 
+ALLOWED_HOSTS.append('host.docker.internal')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
