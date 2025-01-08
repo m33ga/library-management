@@ -67,3 +67,39 @@ def books_by_institution(request):
     books = Book.objects.filter(institution=institution)
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def reserve_book_copy(request):
+    book_copy_id = request.data.get('book_copy_id')
+    if not book_copy_id:
+        return Response({"error": "Book copy ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        book_copy = BookCopy.objects.get(id=book_copy_id)
+    except BookCopy.DoesNotExist:
+        return Response({"error": "Book copy not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    if book_copy.status == 'available':
+        book_copy.status = 'reserved'
+        book_copy.save()
+        return Response({"message": "Book copy reserved successfully"}, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "Book copy is already reserved"}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def return_book_copy(request):
+    book_copy_id = request.data.get('book_copy_id')
+    if not book_copy_id:
+        return Response({"error": "Book copy ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        book_copy = BookCopy.objects.get(id=book_copy_id)
+    except BookCopy.DoesNotExist:
+        return Response({"error": "Book copy not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    if book_copy.status == 'reserved':
+        book_copy.status = 'available'
+        book_copy.save()
+        return Response({"message": "Book copy returned successfully"}, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "Book copy is already available"}, status=status.HTTP_400_BAD_REQUEST)
