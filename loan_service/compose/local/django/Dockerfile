@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the wait-for-it.sh script into the container
+COPY ../../wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
 # Install Python dependencies
 # Copy all requirements files
 COPY requirements/ /app/requirements/
