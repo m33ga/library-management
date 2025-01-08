@@ -6,6 +6,7 @@ class ReservationStatus(models.TextChoices):
     NOTIFIED = 'notified', 'Notified'
     ACCEPTED = 'accepted', 'Accepted'
     CANCELED = 'canceled', 'Canceled'
+    EXPIRED = 'expired', 'Expired'
 
 
 class UserResponseChoices(models.TextChoices):

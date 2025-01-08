@@ -7,3 +7,5 @@ set -o nounset
 cd reservation_service
 python manage.py collectstatic --noinput
 exec gunicorn reservation_service.wsgi:application --bind 0.0.0.0:8000 --chdir=/app
+celery -A reservation_service worker --loglevel=info &
+celery -A reservation_service beat --loglevel=info

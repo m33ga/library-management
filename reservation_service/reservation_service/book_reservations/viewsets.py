@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from .models import Reservation, ReservationStatus, UserResponseChoices
 from .serializers import ReservationSerializer
-from .tasks import publish_notification
+from .utils import publish_notification
 from itsdangerous import URLSafeTimedSerializer, BadData
 from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404
@@ -242,16 +242,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-
-    @action(detail=False, methods=['post'], url_path='book-group/(?P<book_group_id>[^/.]+)/notify-next')
-    def notify_next_in_queue(self, request, book_group_id=None):
-
-        if not book_group_id:
-            return Response(
-                {"error": "The 'book_group_id' field is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+    def _notify_next_in_queue_logic(self, book_group_id):
         next_reservation = (
             self.queryset
             .filter(
@@ -263,22 +254,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
 
         if not next_reservation:
-            return Response(
-                {"message": "No pending reservations found for this book group."},
-                status=status.HTTP_200_OK
-            )
+            None
 
         next_reservation.status = ReservationStatus.NOTIFIED
         next_reservation.notification_datetime = now()
         next_reservation.response_deadline = next_reservation.notification_datetime + timedelta(hours=3)
         next_reservation.save()
-
-        # TODO: Implement Celery task for sending notifications to notif service
-        # TODO: create cron job for handling non-response in 3 hours
-        # DONE: accept reservation and create loan
-        # DONE: cancel reservation
-
-        # send_notification.delay(next_reservation.id)
 
         accept_link = generate_action_link('accept', next_reservation.id)
         cancel_link = generate_action_link('cancel', next_reservation.id)
@@ -287,7 +268,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # member_email = get_member_email(next_reservation.member_id)
         member_email = '123@123.com' # temp
-
         # TODO: get member email from user management service by ID
 
         publish_notification.delay(
@@ -304,16 +284,42 @@ class ReservationViewSet(viewsets.ModelViewSet):
             routing_key='reservation.notify'
         )
 
+        # DONE: Implement Celery task for sending notifications to notif service
+        # TODO: create cron job for handling non-response in 3 hours
+        # DONE: accept reservation and create loan
+        # DONE: cancel reservation
+
+        return {
+            "reservation_id": next_reservation.id,
+            "links": {
+                "accept": accept_link,
+                "skip": skip_link,
+                "cancel": cancel_link
+            }
+        }
+
+    @action(detail=False, methods=['post'], url_path='book-group/(?P<book_group_id>[^/.]+)/notify-next')
+    def notify_next_in_queue(self, request, book_group_id=None):
+
+        if not book_group_id:
+            return Response(
+                {"error": "The 'book_group_id' field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = self._notify_next_in_queue_logic(book_group_id)
+
+        if result is None:
+            return Response(
+                {"message": "No pending reservations found for this book group."},
+                status=status.HTTP_200_OK
+            )
+
         return Response(
             {
-                "message": f"User notified for reservation {next_reservation.id}.",
-                # testing links
-                'links': {
-                    'accept': accept_link,
-                    'skip': skip_link,
-                    'cancel': cancel_link
-                },
-             },
+                "message": f"User notified for reservation {result['reservation_id']}.",
+                "links": result['links'],
+            },
             status=status.HTTP_200_OK
         )
 
@@ -352,8 +358,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             reservation_date=now()
         )
 
-        # TODO: trigger notify next in queue
-        # here
+        self._notify_next_in_queue_logic(reservation.book_group_id)
 
         return Response({"message": "Reservation skipped successfully."}, status=status.HTTP_200_OK)
 
@@ -399,8 +404,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservation.user_response = UserResponseChoices.CANCEL
         reservation.save()
 
-        # TODO: trigger notify the next in queue
-        # here
+        self._notify_next_in_queue_logic(reservation.book_group_id)
 
         return Response({"message": "Reservation canceled successfully."}, status=status.HTTP_200_OK)
 
