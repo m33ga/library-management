@@ -30,4 +30,5 @@ urlpatterns = [
     re_path('change_user_institution/', views.change_user_institution),
     re_path('list_institutions/', views.list_institutions),
     re_path('get_user/', views.get_user),
+    re_path('change_user_group/', views.change_user_group)
 ]
