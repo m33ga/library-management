@@ -67,7 +67,7 @@ services:
     expose:
       - "5432:5432"
 
-  loan_management:
+  loan_service:
     # replace image with image from registry
     build:
       context: ./loan_service
@@ -75,7 +75,7 @@ services:
     image: loan_service_production
     container_name: loan_service_production
     depends_on:
-      - postgres_user_service
+      - postgres_loan_service
     ports:
       - "8000:8000"
     env_file:
@@ -84,15 +84,42 @@ services:
     command:
       - /start  
 
-  postgres_loan_management:
+  postgres_loan_service:
     image: postgres:16
-    container_name: postgres_loan_management_production
+    container_name: postgres_loan_service_production
     volumes:
       - postgres_data_loan_service_production:/var/lib/postgresql/data
     env_file:
       - ./loan_service/.envs/.production/.postgres
     expose:
       - "5432:5432"
+
+  reservation_service:
+    # replace image with image from registry
+    build:
+      context: ./reservation_service
+      dockerfile: ./compose/production/django/Dockerfile
+    image: reservation_service_production
+    container_name: reservation_service_production
+    depends_on:
+      - postgres_reservation_service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./reservation_service/.envs/.production/.postgres
+      - ./reservation_service/.envs/.production/.django
+    command:
+      - /start  
+
+  postgres_reservation_service:
+    image: postgres:16
+    container_name: postgres_reservation_service_production
+    volumes:
+      - postgres_data_reservation_service_production:/var/lib/postgresql/data
+    env_file:
+      - ./reservation_service/.envs/.production/.postgres
+    expose:
+      - "5432:5432"     
 
   nginx:
     # replace image with image from registry
@@ -143,3 +170,4 @@ volumes:
   postgres_data_notification_production:
   postgres_data_catalog_management_production:
   postgres_data_loan_service_production:
+  postgres_data_reservation_service_production:
