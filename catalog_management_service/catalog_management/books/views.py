@@ -2,8 +2,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
-from .models import Book, Author, Institution, Genre, BookCopy
-from .serializers import BookSerializer, InstitutionSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
+from .models import Book, Author, Genre, BookCopy
+from .serializers import BookSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
 import requests
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import BasePermission
@@ -42,11 +42,6 @@ class IsStaffWithValidToken(BasePermission):
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [IsStaffWithValidToken]
-
-class InstitutionViewSet(viewsets.ModelViewSet):
-    queryset = Institution.objects.all()
-    serializer_class = InstitutionSerializer
     permission_classes = [IsStaffWithValidToken]
 
 class GenreViewSet(viewsets.ModelViewSet):

@@ -1,11 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from books.views import BookViewSet, InstitutionViewSet, GenreViewSet, AuthorViewSet, BookCopyViewSet, books_by_author, books_by_title, books_by_institution, reserve_book_copy, return_book_copy
+from books.views import BookViewSet, GenreViewSet, AuthorViewSet, BookCopyViewSet, books_by_author, books_by_title, books_by_institution, reserve_book_copy, return_book_copy
 
 router = DefaultRouter()
 router.register(r'book', BookViewSet)
-router.register(r'institutions', InstitutionViewSet)
 router.register(r'genres', GenreViewSet)
 router.register(r'author', AuthorViewSet)
 router.register(r'book_copy', BookCopyViewSet)

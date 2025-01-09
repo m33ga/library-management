@@ -1,12 +1,5 @@
 from django.db import models
 
-# Tabela Institution (relação com livros)
-class Institution(models.Model):
-    name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
-
 # Tabela Genre (gênero dos livros)
 class Genre(models.Model):
     name = models.CharField(max_length=255)
@@ -23,7 +16,7 @@ class Author(models.Model):
 
 # Tabela Book (livros)
 class Book(models.Model):
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="books")
+    institution = models.PositiveIntegerField(default=0)
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, related_name="books")
     author = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True, related_name="books")
     title = models.CharField(max_length=255)
