@@ -160,30 +160,43 @@ def reserve_book_copy(request):
 
 @api_view(['POST'])
 def return_book_copy(request):
+    # Extract Authorization header
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     token = auth_header.split(' ')[1]
     
+    # Validate token and extract user data
     try:
         response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
         if response.status_code != 200:
             return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        user_data = response.json()
+        user_data = response.json()  # Decode the token data
     except requests.RequestException as e:
         return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+
+    # Check if the user belongs to the "staff" role (group ID 2)
+    groups = user_data.get('user', {}).get('groups', [])
+
+    is_staff = any(group.get('id') == 2 for group in groups)
+    if not is_staff:
+        return Response({"error": "Access denied. Only staff can perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
+    # Process book copy ID
     book_copy_id = request.data.get('book_copy_id')
     if not book_copy_id:
         return Response({"error": "Book copy ID is required"}, status=status.HTTP_400_BAD_REQUEST)
     
+    # Fetch the book copy
     try:
         book_copy = BookCopy.objects.get(id=book_copy_id)
     except BookCopy.DoesNotExist:
         return Response({"error": "Book copy not found"}, status=status.HTTP_404_NOT_FOUND)
     
+    # Handle the book copy return logic
     if book_copy.status == 'reserved':
         book_copy.status = 'available'
         book_copy.save()
