@@ -64,8 +64,26 @@ def books_by_author(request):
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+@csrf_exempt
 @api_view(['POST'])
 def books_by_title(request):
+    # Extract the Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]  # Extract the token part
+    
+    # Validate the token by calling decode_token in user_management
+    try:
+        response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+        if response.status_code != 200:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user_data = response.json()  # Extract user data if the token is valid
+    except requests.RequestException as e:
+        return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     title = request.data.get('title')
     if not title:
         return Response({"error": "Title is required"}, status=status.HTTP_400_BAD_REQUEST)
