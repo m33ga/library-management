@@ -32,11 +32,13 @@ class BookSerializer(serializers.ModelSerializer):
             existing_book.total_books += 1
             existing_book.available_books += 1
             existing_book.save()
-            BookCopy.objects.create(book=existing_book, status='available')
+            for i in range(validated_data['total_books']):
+                BookCopy.objects.create(book=existing_book, status='available')
             return existing_book
         else:
             book = super().create(validated_data) 
-            BookCopy.objects.create(book=book, status='available') 
+            for i in range(validated_data['total_books']):
+                BookCopy.objects.create(book=book, status='available') 
             return book
 
 class GenreSerializer(serializers.ModelSerializer):
