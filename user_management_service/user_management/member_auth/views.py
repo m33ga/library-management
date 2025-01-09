@@ -7,7 +7,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User, Group
 from user_management.serializers import UserSerializer, InstitutionSerializer
-from member_auth.models import Institution
+from member_auth.models import Institution, UserProfile
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import BasePermission
@@ -204,9 +204,24 @@ def change_user_group(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    if request.user.id == user_id:
+        return Response(
+            {"error": "You cannot change your own role."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     try:
         user = User.objects.get(id=user_id)
         group = Group.objects.get(id=group_id)
+
+        logged_in_user_profile = UserProfile.objects.get(user=request.user)
+        target_user_profile = UserProfile.objects.get(user=user)
+
+        if logged_in_user_profile.institution != target_user_profile.institution:
+            return Response(
+                {"error": "You can only modify the role of users in the same institution."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         if group in user.groups.all():
             return Response(
@@ -225,6 +240,8 @@ def change_user_group(request):
         return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
     except Group.DoesNotExist:
         return Response({"error": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
+    except UserProfile.DoesNotExist:
+        return Response({"error": "User profile not found."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
