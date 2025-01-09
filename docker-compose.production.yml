@@ -67,6 +67,32 @@ services:
     expose:
       - "5432:5432"
 
+  loan_management:
+    # replace image with image from registry
+    build:
+      context: ./loan_service
+      dockerfile: ./compose/production/django/Dockerfile
+    image: loan_service_production
+    container_name: loan_service_production
+    depends_on:
+      - postgres_user_service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./loan_service/.envs/.production/.postgres
+      - ./loan_service/.envs/.production/.django
+    command:
+      - /start  
+
+  postgres_loan_management:
+    image: postgres:16
+    container_name: postgres_loan_management_production
+    volumes:
+      - postgres_data_loan_service_production:/var/lib/postgresql/data
+    env_file:
+      - ./loan_service/.envs/.production/.postgres
+    expose:
+      - "5432:5432"
 
   nginx:
     # replace image with image from registry
@@ -116,3 +142,4 @@ volumes:
   postgres_data_user_management_production:
   postgres_data_notification_production:
   postgres_data_catalog_management_production:
+  postgres_data_loan_service_production:
