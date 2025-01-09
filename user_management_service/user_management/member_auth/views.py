@@ -66,6 +66,7 @@ class HasAdminPermission(BasePermission):
 
 # - list_institutions: Returns a list of all institutions.
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def list_institutions(request):
     institutions = Institution.objects.all()
     serializer = InstitutionSerializer(institutions, many=True)
