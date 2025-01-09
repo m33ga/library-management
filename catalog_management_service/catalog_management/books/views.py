@@ -32,7 +32,7 @@ class IsStaffWithValidToken(BasePermission):
         
         # Check if the user belongs to the "staff" role (group ID 2)
         groups = user_data.get('user', {}).get('groups', [])
-        is_staff = any(group.get('id') == 2 for group in groups)
+        is_staff = any(group.get('id') in [2,3] for group in groups)
         if not is_staff:
             raise PermissionDenied({"error": "Access denied. Only staff can perform this action."})
         
@@ -216,7 +216,7 @@ def return_book_copy(request):
     # Check if the user belongs to the "staff" role (group ID 2)
     groups = user_data.get('user', {}).get('groups', [])
 
-    is_staff = any(group.get('id') == 2 for group in groups)
+    is_staff = any(group.get('id') in [2,3] for group in groups)
     if not is_staff:
         return Response({"error": "Access denied. Only staff can perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
