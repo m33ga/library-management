@@ -6,28 +6,63 @@ from .models import Book, Author, Institution, Genre, BookCopy
 from .serializers import BookSerializer, InstitutionSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
 import requests
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import PermissionDenied
+
+USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
+
+class IsStaffWithValidToken(BasePermission):
+    def has_permission(self, request, view):
+        # Extract Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise PermissionDenied({"error": "Authorization token is required"})
+        
+        token = auth_header.split(' ')[1]
+        
+        # Validate the token
+        try:
+            response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+            if response.status_code != 200:
+                raise PermissionDenied({"error": "Invalid or expired token"})
+            
+            user_data = response.json()
+        except requests.RequestException as e:
+            raise PermissionDenied({"error": f"Unable to authenticate with user management. Error: {str(e)}"})
+        
+        # Check if the user belongs to the "staff" role (group ID 2)
+        groups = user_data.get('user', {}).get('groups', [])
+        is_staff = any(group.get('id') == 2 for group in groups)
+        if not is_staff:
+            raise PermissionDenied({"error": "Access denied. Only staff can perform this action."})
+        
+        # Token and role validation passed
+        return True
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    permission_classes = [IsStaffWithValidToken]
 
 class InstitutionViewSet(viewsets.ModelViewSet):
     queryset = Institution.objects.all()
     serializer_class = InstitutionSerializer
+    permission_classes = [IsStaffWithValidToken]
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = [IsStaffWithValidToken]
 
 class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+    permission_classes = [IsStaffWithValidToken]
 
 class BookCopyViewSet(viewsets.ModelViewSet):
     queryset = BookCopy.objects.all()
     serializer_class = BookCopySerializer
-
-USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
+    permission_classes = [IsStaffWithValidToken]
 
 @csrf_exempt
 @api_view(['POST'])
