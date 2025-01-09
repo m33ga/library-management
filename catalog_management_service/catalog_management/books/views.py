@@ -160,6 +160,21 @@ def reserve_book_copy(request):
 
 @api_view(['POST'])
 def return_book_copy(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+        if response.status_code != 200:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user_data = response.json()
+    except requests.RequestException as e:
+        return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     book_copy_id = request.data.get('book_copy_id')
     if not book_copy_id:
         return Response({"error": "Book copy ID is required"}, status=status.HTTP_400_BAD_REQUEST)
