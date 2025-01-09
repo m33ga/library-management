@@ -97,6 +97,21 @@ def books_by_title(request):
 
 @api_view(['POST'])
 def books_by_institution(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+        if response.status_code != 200:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user_data = response.json()
+    except requests.RequestException as e:
+        return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     institution_name = request.data.get('institution_name')
     if not institution_name:
         return Response({"error": "Institution name is required"}, status=status.HTTP_400_BAD_REQUEST)
