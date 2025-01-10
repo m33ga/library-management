@@ -49,7 +49,8 @@ deploy:
   tags:
     - docker
   before_script:
-    # Install openssh-client if it's not already available
+    # Update certificates and install openssh-client
+    - apt-get update && apt-get install -y ca-certificates
     - apt-get update && apt-get install -y openssh-client
 
     # Start SSH agent
