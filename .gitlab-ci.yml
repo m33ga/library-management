@@ -43,9 +43,13 @@ deploy:
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
   - chmod 700 ~/.ssh/id_rsa
   - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
+  - chmod 600 ~/.ssh/known_hosts
   - |
     ssh $SSH_USER@$SSH_HOST <<EOF
-    echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    export CI_REGISTRY_USER=$CI_REGISTRY_USER
+    export CI_REGISTRY_PASSWORD=$CI_REGISTRY_PASSWORD
+    export CI_REGISTRY=$CI_REGISTRY
+    printf "%s" "\$CI_REGISTRY_PASSWORD" | docker login \$CI_REGISTRY -u \$CI_REGISTRY_USER --password-stdin
     EOF
   - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
   - ssh $SSH_USER@$SSH_HOST "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans"
