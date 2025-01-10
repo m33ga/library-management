@@ -54,8 +54,8 @@ build-back-end-production-job:
   stage: build_production
   tags:
     - shared
-   only:
-     - main
+  only:
+    - main
   variables:
     SSH_HOST: $REMOTE_IP
     SSH_USER: $REMOTE_USER
