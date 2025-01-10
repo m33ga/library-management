@@ -1,39 +1,3 @@
-stages:
-  - build
-  - push
-  - deploy
-
-image: docker:latest
-
-services:
-  - docker:dind
-
-before_script:
-  - docker info
-
-build:
-  stage: build
-  script:
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
-  tags:
-    - docker
-  only:
-    - main
-
-push:
-  stage: push
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/frontend:latest
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest
-  tags:
-    - docker
-  only:
-    - main
-
 deploy:
   stage: deploy
   script:
@@ -43,11 +7,17 @@ deploy:
     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/known_hosts
     - |
-      ssh $SSH_USER@$SSH_HOST <<EOF
-      export CI_REGISTRY_USER=$CI_REGISTRY_USER
-      export CI_REGISTRY_PASSWORD=$CI_REGISTRY_PASSWORD
-      export CI_REGISTRY=$CI_REGISTRY
-      printf "%s" "\$CI_REGISTRY_PASSWORD" | docker login \$CI_REGISTRY -u \$CI_REGISTRY_USER --password-stdin
+      ssh $SSH_USER@$SSH_HOST <<'EOF'
+      echo "Debug: Checking variables"
+      echo "CI_REGISTRY_USER: $CI_REGISTRY_USER"
+      echo "CI_REGISTRY: $CI_REGISTRY"
+      echo "Attempting docker login"
+      printf "%s" "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+      if [ $? -ne 0 ]; then
+        echo "Docker login failed"
+        exit 1
+      fi
+      echo "Docker login succeeded"
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
     - ssh $SSH_USER@$SSH_HOST "docker compose -f /home/${SSH_USER}/docker-compose.yml pull && docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans"
