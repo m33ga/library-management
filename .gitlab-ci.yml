@@ -18,9 +18,8 @@ build:
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
     #- docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
-   # - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
+    #- docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
     #- docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
-    
   tags:
     - docker
   only:
@@ -70,6 +69,7 @@ deploy:
       mkdir -p /home/$SSH_USER/loan_service/.envs/.production
       mkdir -p /home/$SSH_USER/notification_service/.envs/.production
       mkdir -p /home/$SSH_USER/reservation_service/.envs/.production
+      mkdir -p /home/$SSH_USER/catalog_management_service/.envs/.production
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
     - mkdir -p .envs/.production # Ensure the directory exists locally
@@ -78,6 +78,7 @@ deploy:
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/notification_service/.envs/
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/reservation_service/.envs/
+    - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/catalog_management_service/.envs/
     - ssh $SSH_USER@$SSH_HOST "
         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
@@ -86,4 +87,3 @@ deploy:
     - docker
   only:
     - main
-
