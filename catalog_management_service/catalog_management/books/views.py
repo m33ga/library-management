@@ -142,16 +142,14 @@ def books_by_institution(request):
     except requests.RequestException as e:
         return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    institution_name = request.data.get('institution_name')
-    if not institution_name:
-        return Response({"error": "Institution name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    institution_id = request.data.get('institution_id')
+    if not institution_id:
+        return Response({"error": "Institution ID is required"}, status=status.HTTP_400_BAD_REQUEST)
     
-    try:
-        institution = Institution.objects.get(name__iexact=institution_name)
-    except Institution.DoesNotExist:
-        return Response({"error": "Institution not found"}, status=status.HTTP_404_NOT_FOUND)
+    books = Book.objects.filter(institution=institution_id)
+    if not books.exists():
+        return Response({"error": "No books found for this institution"}, status=status.HTTP_404_NOT_FOUND)
     
-    books = Book.objects.filter(institution=institution)
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
