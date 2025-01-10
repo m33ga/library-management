@@ -1,16 +1,14 @@
-# test production
 services:
   user_management:
-    # replace image with image from registry
-    build:
-      context: ./user_management_service
-      dockerfile: ./compose/production/django/Dockerfile
-    image: user_management_production
+    image: registry.coding.ipb.pt/library_management_system-group05/user_management_service:latest
     container_name: user_management_production
     depends_on:
       - postgres_user_management
-    ports:
-      - "8000:8000"
+      - rabbitmq
+    volumes:
+      - ./user_management_service:/app
+    expose:
+      - "8000"
     env_file:
       - ./user_management_service/.envs/.production/.postgres
       - ./user_management_service/.envs/.production/.django
@@ -24,44 +22,23 @@ services:
       - postgres_data_user_management_production:/var/lib/postgresql/data
     env_file:
       - ./user_management_service/.envs/.production/.postgres
-    expose:
+    ports:
       - "5432:5432"
 
-  front-end:
-    image: front-end-i
-    # replace image with image from registry
-    build:
-      context: ./frontend
-      dockerfile: compose/Dockerfile.prod
-    container_name: front_end_c_prod
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-
-  nginx:
-    # replace image with image from registry
-    build: ./compose/nginx
-    container_name: nginx_production
-    expose:
-      - "80:80"
-    depends_on:
-      - postgres_user_management
-
   notification:
-    # replace image with image from registry
-    build:
-      context: ./notification_service
-      dockerfile: ./compose/production/django/Dockerfile
-    image: notification_production
+    image: registry.coding.ipb.pt/library_management_system-group05/notification_service:latest
     container_name: notification_production
     depends_on:
       - postgres_notification
-    ports:
-      - "8080:8080"
+      - rabbitmq
+    volumes:
+      - ./notification_service:/app
+    expose:
+      - "8000"
     env_file:
       - ./notification_service/.envs/.production/.postgres
       - ./notification_service/.envs/.production/.django
+      - ./.envs/.production/.env.rabbitmq
     command:
       - /start
 
@@ -72,17 +49,132 @@ services:
       - postgres_data_notification_production:/var/lib/postgresql/data
     env_file:
       - ./notification_service/.envs/.production/.postgres
-    expose:
+    ports:
       - "5433:5432"
+
+  catalog:
+    image: registry.coding.ipb.pt/library_management_system-group05/catalog_management_service:latest
+    container_name: catalog_production
+    depends_on:
+      - postgres_catalog
+      - rabbitmq
+    volumes:
+      - ./catalog_management_service:/app
+    expose:
+      - "8000"
+    env_file:
+      - ./catalog_management_service/.envs/.production/.postgres
+      - ./catalog_management_service/.envs/.production/.django
+    command:
+      - /start
+
+  postgres_catalog:
+    image: postgres:16
+    container_name: postgres_catalog_production
+    volumes:
+      - postgres_data_catalog_production:/var/lib/postgresql/data
+    env_file:
+      - ./catalog_management_service/.envs/.production/.postgres
+    ports:
+      - "5434:5432"
+
+  reservation:
+    image: registry.coding.ipb.pt/library_management_system-group05/reservation_service:latest
+    container_name: reservation_production
+    depends_on:
+      - postgres_reservation
+      - rabbitmq
+    volumes:
+      - ./reservation_service:/app
+    expose:
+      - "8000"
+    env_file:
+      - ./reservation_service/.envs/.production/.postgres
+      - ./reservation_service/.envs/.production/.django
+      - ./.envs/.production/.env.rabbitmq
+    command:
+      - /start
+
+  postgres_reservation:
+    image: postgres:16
+    container_name: postgres_reservation_production
+    volumes:
+      - postgres_data_reservation_production:/var/lib/postgresql/data
+    env_file:
+      - ./reservation_service/.envs/.production/.postgres
+    ports:
+      - "5435:5432"
+
+  loan:
+    image: registry.coding.ipb.pt/library_management_system-group05/loan_service:latest
+    container_name: loan_production
+    depends_on:
+      - postgres_loan
+      - rabbitmq
+    volumes:
+      - ./loan_service:/app
+    expose:
+      - "8000"
+    env_file:
+      - ./loan_service/.envs/.production/.postgres
+      - ./loan_service/.envs/.production/.django
+    command:
+      - /start
+
+  postgres_loan:
+    image: postgres:16
+    container_name: postgres_loan_production
+    volumes:
+      - postgres_data_loan_production:/var/lib/postgresql/data
+    env_file:
+      - ./loan_service/.envs/.production/.postgres
+    ports:
+      - "5436:5432"
+
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: mailpit_production
+    ports:
+      - "8025:8025" # Web interface
+      - "1025:1025" # SMTP server
 
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq_production
-    ports:
+    env_file:
+      - ./.envs/.production/.env.rabbitmq
+    expose:
       - "5672:5672" # RabbitMQ main port
-      - "15672:15672" # RabbitMQ management UI
-  # TODO:   add rest of microservices and db container for each of them
+
+  nginx:
+    image: registry.coding.ipb.pt/library_management_system-group05/custom_nginx:latest
+    container_name: nginx_production
+    expose:
+      - "80"
+    depends_on:
+      - user_management
+      - notification
+      - frontend
+
+  frontend:
+    image: front-end-i
+    build:
+      context: ./frontend
+      dockerfile: compose/Dockerfile.dev
+    container_name: front_end_c_dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+    volumes:
+      - /app/node_modules
+      - ./frontend:/app
 
 volumes:
-  postgres_data_user_management_production:
   postgres_data_notification_production:
+  postgres_data_user_management_production:
+  postgres_data_catalog_production:
+  postgres_data_reservation_production:
+  postgres_data_loan_production:
