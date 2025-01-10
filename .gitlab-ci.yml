@@ -34,21 +34,21 @@ build:
     - main
 
 
-# push:
-#   stage: push
-#   script:
-#     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
-#     - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
-#   tags:
-#     - docker
-#   only:
-#     - main
+push:
+  stage: push
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
+  tags:
+    - docker
+  only:
+    - main
 
 build-back-end-production-job:
   stage: build_production
@@ -69,21 +69,16 @@ build-back-end-production-job:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - echo "Adding SSH host key to known_hosts..."
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
     - echo "Deploying to production environment..."
     - echo "Hello, $GITLAB_USER_LOGIN!"
-    - echo "Creating remote project directory..."
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/$CI_PROJECT_NAME"
-    - echo "Copying files to remote server..."
     - scp -r * $SSH_USER@$SSH_HOST:/home/$SSH_USER/$CI_PROJECT_NAME/
-    - echo "Running Docker Compose on remote server..."
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
         cd /home/$SSH_USER/$CI_PROJECT_NAME &&
         rm -f .env &&
         touch .env &&
         sudo docker compose down -v &&
-        sudo docker system prune -f -a &&
+        sudo docker system prune -f -a  &&
         sudo docker compose up -d --build
-      "
