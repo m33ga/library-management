@@ -6,7 +6,7 @@ class Loan(models.Model):
     book_copy_id = models.PositiveIntegerField(default=0)
     loan_date = models.DateField(auto_now_add=True, blank=True, null=True)
     return_date = models.DateField(null=True, blank=True)
-    returned_date = models.DateField(null=True, blank=True)
+    returned_date = models.DateField(auto_now_add=True,null=True, blank=True)
 
     def __str__(self):
         return f"The book with the code {self.book_copy_id} was rented"
