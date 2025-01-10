@@ -2,8 +2,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
-from .models import Book, Author, Institution, Genre, BookCopy
-from .serializers import BookSerializer, InstitutionSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
+from .models import Book, Author, Genre, BookCopy
+from .serializers import BookSerializer, GenreSerializer, AuthorSerializer, BookCopySerializer
 import requests
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import BasePermission
@@ -42,11 +42,6 @@ class IsStaffWithValidToken(BasePermission):
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [IsStaffWithValidToken]
-
-class InstitutionViewSet(viewsets.ModelViewSet):
-    queryset = Institution.objects.all()
-    serializer_class = InstitutionSerializer
     permission_classes = [IsStaffWithValidToken]
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -147,16 +142,14 @@ def books_by_institution(request):
     except requests.RequestException as e:
         return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    institution_name = request.data.get('institution_name')
-    if not institution_name:
-        return Response({"error": "Institution name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    institution_id = request.data.get('institution_id')
+    if not institution_id:
+        return Response({"error": "Institution ID is required"}, status=status.HTTP_400_BAD_REQUEST)
     
-    try:
-        institution = Institution.objects.get(name__iexact=institution_name)
-    except Institution.DoesNotExist:
-        return Response({"error": "Institution not found"}, status=status.HTTP_404_NOT_FOUND)
+    books = Book.objects.filter(institution=institution_id)
+    if not books.exists():
+        return Response({"error": "No books found for this institution"}, status=status.HTTP_404_NOT_FOUND)
     
-    books = Book.objects.filter(institution=institution)
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -238,3 +231,26 @@ def return_book_copy(request):
         return Response({"message": "Book copy returned successfully"}, status=status.HTTP_200_OK)
     else:
         return Response({"error": "Book copy is already available"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def soft_delete_book_copy(request):
+    # Process book copy ID
+    book_copy_id = request.data.get('book_copy_id')
+    if not book_copy_id:
+        return Response({"error": "Book ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Fetch the book copy
+    try:
+        book_copy = BookCopy.objects.get(id=book_copy_id)
+    except BookCopy.DoesNotExist:
+        return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    if book_copy.status == 'reserved' or book_copy.status == 'unavailable':
+        return Response({"error": "Book copy is reserved or alredy unavailable"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Handle the book copy return logic
+    book_copy.deleted = True
+    book_copy.status = 'unavailable'
+    book_copy.save()
+    return Response({"message": "Book soft deleted successfully"}, status=status.HTTP_200_OK)
