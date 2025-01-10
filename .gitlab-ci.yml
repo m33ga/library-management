@@ -49,7 +49,7 @@ deploy:
   tags:
     - docker
   before_script:
-    # Update certificates and install openssh-client
+    # Install necessary packages
     - apt-get update && apt-get install -y ca-certificates
     - apt-get update && apt-get install -y openssh-client
 
