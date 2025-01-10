@@ -5,8 +5,7 @@ import os
 from django.conf import settings
 from django.utils.timezone import now
 from book_reservations.models import Reservation, ReservationStatus
-from  .viewsets import ReservationViewSet
-from .utils import publish_notification
+from .viewsets import ReservationViewSet
 
 
 @shared_task
