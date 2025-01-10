@@ -6,7 +6,7 @@ from rest_framework.response import Response
 import requests
 from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 
 USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
 
@@ -21,14 +21,12 @@ class FineViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def update_returned_date(request):
-
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         raise PermissionDenied({"error": "Authorization token is required"})
     
     token = auth_header.split(' ')[1]
     
-    # Validate the token
     try:
         response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
         if response.status_code != 200:
@@ -39,7 +37,7 @@ def update_returned_date(request):
         raise PermissionDenied({"error": f"Unable to authenticate with user management. Error: {str(e)}"})
     
     groups = user_data.get('user', {}).get('groups', [])
-    is_staff = any(group.get('id') in [2,3] for group in groups)
+    is_staff = any(group.get('id') in [2, 3] for group in groups)
     if not is_staff:
         raise PermissionDenied({"error": "Access denied. Only staff can perform this action."})
 
@@ -54,14 +52,39 @@ def update_returned_date(request):
     except Loan.DoesNotExist:
         return Response({"error": "Loan not found"}, status=status.HTTP_404_NOT_FOUND)
     
-    loan.returned_date = returned_date
+    try:
+        returned_date_obj = datetime.strptime(returned_date, '%Y-%m-%d').date()
+    except ValueError:
+        return Response({"error": "Invalid date format for returned_date. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if isinstance(loan.return_date, str):
+        try:
+            loan.return_date = datetime.strptime(loan.return_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format in loan.return_date."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    loan.returned_date = returned_date_obj
     loan.save()
+
+    if loan.returned_date > loan.return_date:
+        fine_amount = (loan.returned_date - loan.return_date).days * 0.5
+        fine_data = {
+            'loan_id': loan_id,
+            'fine_date': date.today(),
+            'amount': fine_amount
+        }
+        serializer = FineSerializer(data=fine_data)
+        if serializer.is_valid():
+            fine = serializer.save()
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     book_id = loan.book_copy_id
    
     response = requests.post(
         'http://host.docker.internal:8081/api/return_book_copy/',
-        json={"book_copy_id": book_id}
+        json={"book_copy_id": book_id},
+        headers={'Authorization': f'Bearer {token}'}
     )
 
     if response.status_code != 200:
