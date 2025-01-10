@@ -1,7 +1,7 @@
 stages:
   - build
   - push
-  # - deploy
+  - build_production
 
 image: docker:latest
 
@@ -9,7 +9,14 @@ services:
   - docker:dind
 
 before_script:
-  - docker info
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "Adding SSH host key to known_hosts..."
+  - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts || echo "Failed to add SSH host key"
+
 
 build:
   stage: build
@@ -43,45 +50,35 @@ push:
   only:
     - main
 
-# deploy:
-#   stage: deploy
-#   tags:
-#     - docker
-#   before_script:
-#     - apt-get update && apt-get install -y openssh-client
-#     - mkdir -p ~/.ssh
-#     - chmod 700 ~/.ssh
-#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-#     - ssh-keyscan $REMOTE_IP >> ~/.ssh/known_hosts
-#     - chmod 644 ~/.ssh/known_hosts
-
-#   script:
-#     - eval $(ssh-agent -s)
-#     - ssh-add -l  # Debug: list added identities
-
-#     # Create the directory on the remote server
-#     - ssh $REMOTE_USER@$REMOTE_IP "mkdir -p /home/m320964/library_management"
-
-#     # Transfer the docker-compose file
-#     - scp docker-compose.production.yml $REMOTE_USER@$REMOTE_IP:/home/m320964/library_management/
-
-#     # SSH into the remote server to run docker commands
-#     - ssh $REMOTE_USER@$REMOTE_IP "
-#         echo \"$CI_REGISTRY_PASSWORD\" | docker login -u \"$CI_REGISTRY_USER\" --password-stdin $CI_REGISTRY &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/frontend:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/notification_service:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/loan_service:latest &&
-#         docker pull ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest &&
-#         docker compose -f ~/library_management/docker-compose.production.yml up -d --force-recreate
-#       "
-
-#   #   - chmod +x ./scripts/deploy.sh
-#   #   - sh ./scripts/deploy.sh
-#   # tags:
-#   #   - docker
-#   # only:
-#   #   - main
-
+build-back-end-production-job:
+  stage: build_production
+  tags:
+    - shared
+  only:
+    - main
+  variables:
+    SSH_HOST: $REMOTE_IP
+    SSH_USER: $REMOTE_USER
+    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_production
+    DOCKER_HOST: "tcp://$REMOTE_IP"
+    POSTGRES_USER: $POSTGRES_USER
+    POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to production environment..."
+    - echo "Hello, $GITLAB_USER_LOGIN!"
+    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/$CI_PROJECT_NAME"
+    - scp -r * $SSH_USER@$SSH_HOST:/home/$SSH_USER/$CI_PROJECT_NAME/
+    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
+        cd /home/$SSH_USER/$CI_PROJECT_NAME &&
+        rm -f .env &&
+        touch .env &&
+        sudo docker compose down -v &&
+        sudo docker system prune -f -a  &&
+        sudo docker compose up -d --build
