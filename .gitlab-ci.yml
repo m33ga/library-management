@@ -61,6 +61,8 @@ deploy:
       echo "Docker login succeeded"
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+    - mkdir -p .envs/.production
+    - echo "$POSTGRES_ENV" > .envs/.production/.postgres
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/.production
     - ssh $SSH_USER@$SSH_HOST "
         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
@@ -70,4 +72,3 @@ deploy:
     - docker
   only:
     - main
-
