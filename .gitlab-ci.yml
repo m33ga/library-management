@@ -45,6 +45,7 @@ before_script:
 
 deploy:
   stage: deploy
+  image: ubuntu:latest
   tags:
     - docker
   before_script:
