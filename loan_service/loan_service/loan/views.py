@@ -41,8 +41,6 @@ def update_returned_date(request):
     is_staff = any(group.get('id') in [2,3] for group in groups)
     if not is_staff:
         raise PermissionDenied({"error": "Access denied. Only staff can perform this action."})
-    
-    return True
 
     loan_id = request.data.get('loan_id')
     returned_date = request.data.get('returned_date')
