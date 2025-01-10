@@ -17,12 +17,10 @@ build:
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
-
   tags:
     - docker
   only:
     - main
-
 
 push:
   stage: push
@@ -39,21 +37,21 @@ push:
 deploy:
   stage: deploy
   script:
-  - mkdir -p ~/.ssh
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-  - chmod 700 ~/.ssh/id_rsa
-  - ssh-keyscan -H ${SSH_HOST} >> ~/.ssh/known_hosts
-  - chmod 600 ~/.ssh/known_hosts
-  - |
-    ssh $SSH_USER@$SSH_HOST <<EOF
-    export CI_REGISTRY_USER=$CI_REGISTRY_USER
-    export CI_REGISTRY_PASSWORD=$CI_REGISTRY_PASSWORD
-    export CI_REGISTRY=$CI_REGISTRY
-    printf "%s" "\$CI_REGISTRY_PASSWORD" | docker login \$CI_REGISTRY -u \$CI_REGISTRY_USER --password-stdin
-    EOF
-  - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
-  - ssh $SSH_USER@$SSH_HOST "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans"
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+    - chmod 600 ~/.ssh/known_hosts
+    - |
+      ssh $SSH_USER@$SSH_HOST <<EOF
+      export CI_REGISTRY_USER=$CI_REGISTRY_USER
+      export CI_REGISTRY_PASSWORD=$CI_REGISTRY_PASSWORD
+      export CI_REGISTRY=$CI_REGISTRY
+      printf "%s" "\$CI_REGISTRY_PASSWORD" | docker login \$CI_REGISTRY -u \$CI_REGISTRY_USER --password-stdin
+      EOF
+    - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+    - ssh $SSH_USER@$SSH_HOST "docker compose -f /home/${SSH_USER}/docker-compose.yml pull && docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans"
   tags:
-  - docker
+    - docker
   only:
-      - main
+    - main
