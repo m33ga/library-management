@@ -6,6 +6,7 @@ from rest_framework.response import Response
 import requests
 from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
+from datetime import timedelta, date
 
 USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
 
@@ -67,3 +68,45 @@ def update_returned_date(request):
         return Response({"error": "Failed to call the external service"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"message": "Returned date updated and external service called successfully"}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def creat_loan_using_book_group_id(request):
+    member_id = request.data.get('member_id')
+    group_book_id = request.data.get('group_book_id')
+
+    if not member_id or not group_book_id:
+        return Response({"error": "Both 'member_id' and 'group_book_id' must be provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verificar se o member_id existe
+    response_member = requests.post(
+        'http://host.docker.internal:8000/get_user/',
+        json={'user_id': member_id}
+    )
+    if response_member.status_code != 200:
+        return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Verificar se há um BookCopy disponível no grupo de livros
+    response_book_copy = requests.post(
+        'http://host.docker.internal:8081/api/verify_book_copy_availability_in_bookgroup/',
+        json={'book_id': group_book_id}
+    )
+    if response_book_copy.status_code != 200:
+        return Response({"error": "No available book copy found in the book group."}, status=status.HTTP_404_NOT_FOUND)
+    
+    book_copy_id = response_book_copy.json().get('book_copy_id')
+    
+    # Criar o empréstimo (Loan)
+    loan_data = {
+        'member_id': member_id,
+        'book_copy_id': book_copy_id,
+        'loan_date': date.today(),
+        'return_date': date.today() + timedelta(weeks=1),
+        'returned_date': None
+    }
+    serializer = LoanSerializer(data=loan_data)
+    if serializer.is_valid():
+        loan = serializer.save()
+        return Response({"message": "Loan created successfully", "loan_id": loan.id}, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    

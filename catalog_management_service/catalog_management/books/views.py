@@ -155,21 +155,6 @@ def books_by_institution(request):
 
 @api_view(['POST'])
 def reserve_book_copy(request):
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    token = auth_header.split(' ')[1]
-    
-    try:
-        response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
-        if response.status_code != 200:
-            return Response({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        user_data = response.json()
-    except requests.RequestException as e:
-        return Response({"error": f"Unable to authenticate with user management. Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
     book_copy_id = request.data.get('book_copy_id')
     if not book_copy_id:
         return Response({"error": "Book copy ID is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -286,3 +271,18 @@ def soft_delete_book_copy(request):
     book_copy.save()
 
     return Response({"message": "Book soft deleted successfully"}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def verify_book_copy_availability_in_bookgroup(request):
+    book_id = request.data.get('book_id')
+    if not book_id:
+        return Response({"error": "Book ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        book_copy = BookCopy.objects.filter(book_id=book_id, status='available').first()
+        if book_copy:
+            return Response({"message": "Book copy is available", "book_copy_id": book_copy.id}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "No available book copy found"}, status=status.HTTP_404_NOT_FOUND)
+    except BookCopy.DoesNotExist:
+        return Response({"error": "Book copy not found"}, status=status.HTTP_404_NOT_FOUND)
