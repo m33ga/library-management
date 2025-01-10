@@ -17,7 +17,6 @@ Including another URLconf
 from django.urls import path, include, re_path
 from django.contrib import admin
 from rest_framework import routers
-from email_notification import views as email_notification
 
 router = routers.DefaultRouter()
 
@@ -25,4 +24,5 @@ urlpatterns = router.urls
 
 urlpatterns += [
     path('admin/', admin.site.urls),
+    path('api/', include('email_notification.urls')),
 ]

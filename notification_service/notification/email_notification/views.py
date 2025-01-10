@@ -27,3 +27,36 @@
 # #         send_mail(subject, message, 'your_email@example.com', recipient_list)
 # #         return Response({'status': 'Email sent'}, status=status.HTTP_200_OK)
 # #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Notification
+from .serializers import NotificationSerializer
+
+class NotificationListView(APIView):
+    """
+    View to list all notifications.
+    """
+
+    def get(self, request):
+        notifications = Notification.objects.all()
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class NotificationByMemberView(APIView):
+    """
+    View to list notifications for a specific member_id.
+    """
+
+    def get(self, request, member_id):
+        notifications = Notification.objects.filter(member_id=member_id)
+        if not notifications.exists():
+            return Response(
+                {"detail": "No notifications found for this member."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
