@@ -34,21 +34,21 @@ build:
     - main
 
 
-push:
-  stage: push
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
-  tags:
-    - docker
-  only:
-    - main
+# push:
+#   stage: push
+#   script:
+#     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
+#   tags:
+#     - docker
+#   only:
+#     - main
 
 build-back-end-production-job:
   stage: build_production
