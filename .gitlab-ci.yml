@@ -54,9 +54,9 @@ deploy:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+    - ssh-keyscan -H $REMOTE_IP >> ~/.ssh/known_hosts
     - eval $(ssh-agent -s)
-    - ssh $SSH_USER@$SSH_HOST "mkdir -p /home/$REMOTE_USER/library_management/"
+    - ssh $REMOTE_USER@$REMOTE_IP "mkdir -p /home/$REMOTE_USER/library_management/"
     - scp docker-compose.production.yml $REMOTE_USER@$REMOTE_IP:/home/m320964/library_management/
 
     # SSH into the remote server to run docker commands
