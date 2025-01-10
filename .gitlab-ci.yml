@@ -33,6 +33,7 @@ push:
     - docker
   only:
     - main
+
 deploy:
   stage: deploy
   script:
@@ -59,11 +60,12 @@ deploy:
         exit 1
       fi
       echo "Docker login succeeded"
+      mkdir -p /home/$SSH_USER/loan_service/.envs/.production
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
-    - mkdir -p .envs/.production
-    - echo "$POSTGRES_ENV" > .envs/.production/.postgres
-    - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/.production
+    - mkdir -p .envs/.production # Ensure the directory exists locally
+    - echo "$POSTGRES_ENV" > .envs/.production/.postgres # Generate the .env file dynamically
+    - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
     - ssh $SSH_USER@$SSH_HOST "
         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
