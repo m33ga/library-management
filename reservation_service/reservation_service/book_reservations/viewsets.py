@@ -10,12 +10,37 @@ from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .utils import generate_action_link
+from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import PermissionDenied
+import requests
 
+USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
+
+class IsValidToken(BasePermission):
+    def has_permission(self, request, view):
+        # Extract Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise PermissionDenied({"error": "Authorization token is required"})
+        
+        token = auth_header.split(' ')[1]
+        
+        # Validate the token
+        try:
+            response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+            if response.status_code != 200:
+                raise PermissionDenied({"error": "Invalid or expired token"})
+            
+            user_data = response.json()
+        except requests.RequestException as e:
+            raise PermissionDenied({"error": f"Unable to authenticate with user management. Error: {str(e)}"})
+        
+        return True
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
-
+    permission_classes = [IsValidToken]
 
     def perform_create(self, serializer):
         member_id = serializer.validated_data['member_id']
