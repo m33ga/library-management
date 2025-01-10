@@ -41,7 +41,7 @@ push:
   only:
     - main
 
-deploy:
+deploy:deploy:
   stage: deploy
   script:
     - mkdir -p ~/.ssh
@@ -50,33 +50,15 @@ deploy:
     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/known_hosts
     - |
-      if [ -z "$CI_REGISTRY_USER" ] || [ -z "$CI_REGISTRY_PASSWORD" ] || [ -z "$CI_REGISTRY" ]; then
-        echo "Error: One or more required environment variables (CI_REGISTRY_USER, CI_REGISTRY_PASSWORD, CI_REGISTRY) are missing."
-        exit 1
-      fi
-    - |
       ssh $SSH_USER@$SSH_HOST <<EOF
-      echo "Debug: Exporting environment variables"
-      export CI_REGISTRY_USER="$CI_REGISTRY_USER"
-      export CI_REGISTRY_PASSWORD="$CI_REGISTRY_PASSWORD"
-      export CI_REGISTRY="$CI_REGISTRY"
-      echo "Attempting docker login"
-      echo "\$CI_REGISTRY_PASSWORD" | docker login "\$CI_REGISTRY" --username "\$CI_REGISTRY_USER" --password-stdin
-      if [ \$? -ne 0 ]; then
-        echo "Docker login failed"
-        exit 1
-      fi
-      echo "Docker login succeeded"
-      mkdir -p /home/$SSH_USER/loan_service/.envs/.production
-      mkdir -p /home/$SSH_USER/notification_service/.envs/.production
-      mkdir -p /home/$SSH_USER/reservation_service/.envs/.production
-      mkdir -p /home/$SSH_USER/catalog_management_service/.envs/.production
-      mkdir -p /home/$SSH_USER/user_management_service/.envs/.production
+      echo "Ensuring Docker is accessible"
+      sudo usermod -aG docker $SSH_USER || true
+      sudo systemctl start docker || true
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
-    - mkdir -p .envs/.production # Ensure the directory exists locally
-    - echo "$POSTGRES_ENV" > .envs/.production/.postgres # Generate the .postgres file dynamically
-    - echo "$DJANGO_ENV" > .envs/.production/.django # Generate the .django file dynamically
+    - mkdir -p .envs/.production
+    - echo "$POSTGRES_ENV" > .envs/.production/.postgres
+    - echo "$DJANGO_ENV" > .envs/.production/.django
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/notification_service/.envs/
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/reservation_service/.envs/
@@ -90,3 +72,4 @@ deploy:
     - docker
   only:
     - main
+
