@@ -306,8 +306,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         response = requests.get(url, json=data)
         book_group = response.json().get('title')
-        # TODO: get book group title from book service by ID
-        # TODO: get member email from user management service by ID
+        # DONE: get book group title from book service by ID
+        # DONE: get member email from user management service by ID
 
         publish_notification(
             payload={
@@ -422,7 +422,14 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservation.save()
 
         # TODO: Trigger the loan microservice to create a loan
-        # here
+        # this can and should be done asynchronously with no api call
+        response = requests.post(
+            'http://host.docker.internal:8083/api/creat_loan_using_book_group_id/',
+            json={"member_id": reservation.member_id, "group_book_id": reservation.book_group_id}
+        )
+
+        if response.status_code != 201:
+            return Response({"error": response.json().get('error')}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": "Reservation accepted successfully."}, status=status.HTTP_200_OK)
 
