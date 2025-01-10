@@ -49,6 +49,7 @@ deploy:
   tags:
     - docker
   before_script:
+    # Install openssh-client if it's not already available
     - apt-get update && apt-get install -y openssh-client
 
     # Start SSH agent
@@ -64,9 +65,10 @@ deploy:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
 
-    # Add remote server to known_hosts (avoid manual prompt)
-    - ssh-keyscan $REMOTE_IP >> ~/.ssh/known_hosts
+    # Correct usage of ssh-keyscan (with port 22 if necessary)
+    - ssh-keyscan -p 22 $REMOTE_IP >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
+
 
   script:
     - ssh $REMOTE_USER@$REMOTE_IP "mkdir -p /home/m320964/library_management"
