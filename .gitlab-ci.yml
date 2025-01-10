@@ -1,6 +1,6 @@
 stages:
-  - build
-  - push
+  # - build
+  # - push
   - deploy
 
 image: docker:latest
@@ -11,45 +11,77 @@ services:
 before_script:
   - docker info
 
-build:
-  stage: build
-  script:
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/frontend:latest -f frontend/compose/Dockerfile.prod .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest -f compose/.production/Dockerfile .
-  tags:
-    - docker
-  # only:
-  #   - main
+# build:
+#   stage: build
+#   script:
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/frontend:latest -f frontend/compose/Dockerfile.prod .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
+#     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest -f compose/.production/Dockerfile .
+#   tags:
+#     - docker
+#   # only:
+#   #   - main
 
 
-push:
-  stage: push
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
-  tags:
-    - docker
-  # only:
-  #   - main
+# push:
+#   stage: push
+#   script:
+#     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
+#     - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
+#   tags:
+#     - docker
+#   # only:
+#   #   - main
 
 deploy:
   stage: deploy
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - sh ./scripts/deploy.sh
   tags:
     - docker
+  before_script:
+    - apt-get update && apt-get install -y openssh-client
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan $REMOTE_IP >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+  script:
+    - eval $(ssh-agent -s)
+    - ssh-add -l  # Debug: list added identities
+
+    # Create the directory on the remote server
+    - ssh $REMOTE_USER@$REMOTE_IP "mkdir -p /home/m320964/library_management"
+
+    # Transfer the docker-compose file
+    - scp docker-compose.production.yml $REMOTE_USER@$REMOTE_IP:/home/m320964/library_management/
+
+    # SSH into the remote server to run docker commands
+    - ssh $REMOTE_USER@$REMOTE_IP "
+        echo \"$CI_REGISTRY_PASSWORD\" | docker login -u \"$CI_REGISTRY_USER\" --password-stdin $CI_REGISTRY &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/frontend:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/notification_service:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/loan_service:latest &&
+        docker pull ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest &&
+        docker compose -f ~/library_management/docker-compose.production.yml up -d --force-recreate
+      "
+
+    # - chmod +x ./scripts/deploy.sh
+    # - sh ./scripts/deploy.sh
+  # tags:
+  #   - docker
   # only:
     # - main
 
