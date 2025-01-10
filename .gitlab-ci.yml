@@ -33,7 +33,6 @@ push:
     - docker
   only:
     - main
-
 deploy:
   stage: deploy
   script:
@@ -43,13 +42,19 @@ deploy:
     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/known_hosts
     - |
-      ssh $SSH_USER@$SSH_HOST <<'EOF'
-      echo "Debug: Checking variables"
-      echo "CI_REGISTRY_USER: $CI_REGISTRY_USER"
-      echo "CI_REGISTRY: $CI_REGISTRY"
+      if [ -z "$CI_REGISTRY_USER" ] || [ -z "$CI_REGISTRY_PASSWORD" ] || [ -z "$CI_REGISTRY" ]; then
+        echo "Error: One or more required environment variables (CI_REGISTRY_USER, CI_REGISTRY_PASSWORD, CI_REGISTRY) are missing."
+        exit 1
+      fi
+    - |
+      ssh $SSH_USER@$SSH_HOST <<EOF
+      echo "Debug: Exporting environment variables"
+      export CI_REGISTRY_USER="$CI_REGISTRY_USER"
+      export CI_REGISTRY_PASSWORD="$CI_REGISTRY_PASSWORD"
+      export CI_REGISTRY="$CI_REGISTRY"
       echo "Attempting docker login"
-      printf "%s" "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
-      if [ $? -ne 0 ]; then
+      echo "\$CI_REGISTRY_PASSWORD" | docker login "\$CI_REGISTRY" --username "\$CI_REGISTRY_USER" --password-stdin
+      if [ \$? -ne 0 ]; then
         echo "Docker login failed"
         exit 1
       fi
