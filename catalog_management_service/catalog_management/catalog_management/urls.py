@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/return_book_copy/', return_book_copy, name='return_book_copy'),
     path('api/soft_delete_book_copy/', soft_delete_book_copy, name='soft_delete_book_copy'),
     path('api/books/title/', get_book_title_by_id, name='get-book-title-by-id'),
+    path('api/verify_book_copy_availability_in_bookgroup/', verify_book_copy_availability_in_bookgroup, name='verify_book_copy_availability_in_bookgroup'),
 ]
