@@ -44,6 +44,7 @@ services:
     env_file:
       - ./notification_service/.envs/.local/.postgres
       - ./notification_service/.envs/.local/.django
+      - ./.envs/.local/.env.rabbitmq
     command:
       - /start
 
