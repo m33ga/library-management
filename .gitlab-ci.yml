@@ -1,7 +1,7 @@
 stages:
   # - build
   # - push
-  - build-production
+  - build_production
 
 image: docker:latest
 
