@@ -49,23 +49,31 @@ deploy:
     - docker
   before_script:
     - apt-get update && apt-get install -y openssh-client
+
+    # Start SSH agent
+    - eval $(ssh-agent -s)
+
+    # Add the private key to the agent
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+    # Debug: List the added identities
+    - ssh-add -l
+
+    # Set up SSH directory and permissions
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+    # Add remote server to known_hosts (avoid manual prompt)
     - ssh-keyscan $REMOTE_IP >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
 
   script:
-    - eval $(ssh-agent -s)
-    - ssh-add -l  # Debug: list added identities
-
-    # Create the directory on the remote server
     - ssh $REMOTE_USER@$REMOTE_IP "mkdir -p /home/m320964/library_management"
 
     # Transfer the docker-compose file
     - scp docker-compose.production.yml $REMOTE_USER@$REMOTE_IP:/home/m320964/library_management/
 
-    # SSH into the remote server to run docker commands
+    # Run Docker commands on the remote server
     - ssh $REMOTE_USER@$REMOTE_IP "
         echo \"$CI_REGISTRY_PASSWORD\" | docker login -u \"$CI_REGISTRY_USER\" --password-stdin $CI_REGISTRY &&
         docker pull ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest &&
