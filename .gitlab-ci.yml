@@ -63,10 +63,6 @@ deploy:
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/.production
     - ssh $SSH_USER@$SSH_HOST "
-        if [ ! -f /home/${SSH_USER}/loan_service/.envs/.production/.postgres ]; then
-          echo 'Error: .env file not found!'
-          exit 1
-        fi
         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
       "
