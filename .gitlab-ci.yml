@@ -17,9 +17,9 @@ build:
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/frontend:latest -f frontend/compose/Dockerfile.prod .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
-    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
+    #- docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
+   # - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
+    #- docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-grop05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
     
   tags:
     - docker
@@ -33,9 +33,9 @@ push:
     - docker push ${CI_REGISTRY}/library_management_system-grop05/user_management_service:latest
     - docker push ${CI_REGISTRY}/library_management_system-grop05/frontend:latest
     - docker push ${CI_REGISTRY}/library_management_system-grop05/notification_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/loan_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest
-    - docker push ${CI_REGISTRY}/library_management_system-grop05/reservation_service:latest
+    #- docker push ${CI_REGISTRY}/library_management_system-grop05/loan_service:latest
+    #- docker push ${CI_REGISTRY}/library_management_system-grop05/catalog_management_service:latest
+    #- docker push ${CI_REGISTRY}/library_management_system-grop05/reservation_service:latest
   tags:
     - docker
   only:
