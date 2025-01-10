@@ -14,7 +14,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
 import requests
 
-USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/" 
+USER_MANAGEMENT_URL = "http://host.docker.internal:8000/decode_token/"
 
 class IsValidToken(BasePermission):
     def has_permission(self, request, view):
@@ -22,19 +22,19 @@ class IsValidToken(BasePermission):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             raise PermissionDenied({"error": "Authorization token is required"})
-        
+
         token = auth_header.split(' ')[1]
-        
+
         # Validate the token
         try:
             response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
             if response.status_code != 200:
                 raise PermissionDenied({"error": "Invalid or expired token"})
-            
+
             user_data = response.json()
         except requests.RequestException as e:
             raise PermissionDenied({"error": f"Unable to authenticate with user management. Error: {str(e)}"})
-        
+
         return True
 
 class ReservationViewSet(viewsets.ModelViewSet):
@@ -294,6 +294,18 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # member_email = get_member_email(next_reservation.member_id)
         member_email = '123@123.com' # temp
         book_group = 'a book title' # temp
+
+        url = "http://host.docker.internal:8000/get_user/"  # url no bueno
+        data = {"user_id": next_reservation.member_id}
+
+        response = requests.post(url, json=data)
+        member_email = response.json().get('user', {}).get('email')
+
+        url = "http://host.docker.internal:8081/api/books/title/"  # url no bueno
+        data = {"book_group_id": next_reservation.book_group_id}
+
+        response = requests.get(url, json=data)
+        book_group = response.json().get('title')
         # TODO: get book group title from book service by ID
         # TODO: get member email from user management service by ID
 
@@ -317,6 +329,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # DONE: accept reservation and create loan
         # DONE: cancel reservation
 
+        # return data for postman testing
         return {
             "reservation_id": next_reservation.id,
             "links": {
