@@ -25,5 +25,4 @@ urlpatterns = router.urls
 
 urlpatterns += [
     path('admin/', admin.site.urls),
-    re_path('email/send-email/', email_notification.send_email, name='send-email'),
 ]

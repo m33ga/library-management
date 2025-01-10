@@ -13,8 +13,36 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import environ
+from kombu import Exchange, Queue
+
+
 load_dotenv()
 
+env = environ.Env()
+environ.Env.read_env()
+
+RABBITMQ_USER = env('RABBITMQ_USER')
+RABBITMQ_PASS = env('RABBITMQ_PASS')
+RABBITMQ_HOST = env('RABBITMQ_HOST')
+RABBITMQ_PORT = env.int('RABBITMQ_PORT', default=5672)
+RABBITMQ_VHOST = env('RABBITMQ_VHOST', default='/')
+RABBITMQ_EXCHANGE = env('RABBITMQ_EXCHANGE', default='reservation_notifications')
+
+# Celery settings
+CELERY_BROKER_URL = f'amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = None
+
+
+CELERY_TASK_QUEUES = [
+    Queue(
+        "reservation_notifications_queue",
+        Exchange(RABBITMQ_EXCHANGE, type="direct", durable=True),
+        routing_key="reservation.notify"
+    ),
+]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -52,6 +80,28 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Enable werkzeug debugger
+if DEBUG:
+    os.environ['WERKZEUG_DEBUG_PIN'] = 'off'
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'loggers': {
+            'werkzeug': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+        },
+    }
+
 
 ROOT_URLCONF = 'notification.urls'
 
