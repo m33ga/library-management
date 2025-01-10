@@ -279,7 +279,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
 
         if not next_reservation:
-            None
+            return None
 
         next_reservation.status = ReservationStatus.NOTIFIED
         next_reservation.notification_datetime = now()
@@ -293,13 +293,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # member_email = get_member_email(next_reservation.member_id)
         member_email = '123@123.com' # temp
+        book_group = 'a book title' # temp
+        # TODO: get book group title from book service by ID
         # TODO: get member email from user management service by ID
 
-        publish_notification.delay(
+        publish_notification(
             payload={
                 'reservation_id': next_reservation.id,
-                'book_group_id': book_group_id,
+                'book_group': book_group,
                 'user_email': member_email,
+                'member_id': next_reservation.member_id,
                 'links': {
                     'accept': accept_link,
                     'skip': skip_link,
@@ -310,7 +313,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
 
         # DONE: Implement Celery task for sending notifications to notif service
-        # TODO: create cron job for handling non-response in 3 hours
+        # DONE: create cron job for handling non-response in 3 hours
         # DONE: accept reservation and create loan
         # DONE: cancel reservation
 

@@ -4,7 +4,7 @@ from  django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'reservation_service.settings')
 
-app = Celery('reservation_service', broker=settings.CELERY_BROKER_URL)
+app = Celery('reservation_service')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 

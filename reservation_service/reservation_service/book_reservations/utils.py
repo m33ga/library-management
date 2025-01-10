@@ -1,8 +1,10 @@
 from itsdangerous import URLSafeTimedSerializer
 from django.conf import settings
-from celery import shared_task
+import uuid
+# from celery import shared_task
 import json
-from kombu import Connection, Exchange, Producer
+import pika
+# from kombu import Connection, Exchange, Producer
 
 
 def generate_action_link(action, reservation_id):
@@ -12,25 +14,56 @@ def generate_action_link(action, reservation_id):
     base_url = f"http://localhost/reservation/api/reservations/{action}/"
     return f"{base_url}?token={token}"
 
+RABBITMQ_USER = settings.RABBITMQ_USER
+RABBITMQ_PASS = settings.RABBITMQ_PASS
+RABBITMQ_HOST = settings.RABBITMQ_HOST
+RABBITMQ_PORT = settings.RABBITMQ_PORT
+RABBITMQ_VHOST = settings.RABBITMQ_VHOST
+RABBITMQ_EXCHANGE = settings.RABBITMQ_EXCHANGE
 
-@shared_task
-def publish_notification(payload, routing_key):
 
-    broker_url = settings.CELERY_BROKER_URL
-    exchange_name = settings.RABBITMQ_EXCHANGE
+def publish_notification(payload, routing_key="reservation.notify"):
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+    connection_params = pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        virtual_host=RABBITMQ_VHOST,
+        credentials=credentials,
+    )
 
-    with Connection(broker_url) as connection:
-        channel = connection.channel()
-        exchange = Exchange(exchange_name, type='topic', durable=True)
-        producer = Producer(channel, exchange, serializer='json')
+    connection = pika.BlockingConnection(connection_params)
+    channel = connection.channel()
 
-        producer.publish(
-            payload,
-            routing_key=routing_key,
-            retry=True,
-            retry_policy={
-                'interval_start': 0,
-                'interval_step': 2,
-                'interval_max': 30,
-            }
-        )
+    # Declare the exchange if it doesn't already exist
+    channel.exchange_declare(
+        exchange=RABBITMQ_EXCHANGE,
+        exchange_type="direct",
+        durable=True,
+    )
+
+    # Create the message body
+    message_body = json.dumps(payload)
+
+    # Add headers required for Celery to process the task
+    message_with_headers = {
+        "args": [payload],  # Payload as arguments to the Celery task
+        "kwargs": {},  # Empty kwargs, you can add more if needed
+    }
+
+    # Publish the message with the required headers
+    channel.basic_publish(
+        exchange=RABBITMQ_EXCHANGE,
+        routing_key=routing_key,
+        body=json.dumps(message_with_headers),  # Send the message with the task body
+        properties=pika.BasicProperties(
+            content_type="application/json",
+            headers={
+                "id": str(uuid.uuid4()),  # Unique task ID
+                "task": "email_notification.tasks.process_notification",  # The Celery task that will process this message
+            },
+        ),
+    )
+
+    connection.close()
+
+    print("Notification published successfully")
