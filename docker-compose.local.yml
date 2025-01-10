@@ -40,7 +40,7 @@ services:
     volumes:
       - ./notification_service:/app
     ports:
-      - "8080:8080"
+      - "8080:8000"
     env_file:
       - ./notification_service/.envs/.local/.postgres
       - ./notification_service/.envs/.local/.django
@@ -133,8 +133,8 @@ services:
     env_file:
       - ./loan_service/.envs/.local/.postgres
       - ./loan_service/.envs/.local/.django
-    command: >
-      sh -c "./wait-for-it.sh postgres_loan:5432 -t 30 -- /start"
+    command:
+      - /start
 
   postgres_loan:
     image: postgres:16
