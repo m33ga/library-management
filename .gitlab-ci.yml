@@ -69,6 +69,7 @@ deploy:
       echo "Docker login succeeded"
       mkdir -p /home/$SSH_USER/loan_service/.envs/.production
       mkdir -p /home/$SSH_USER/notification_service/.envs/.production
+      mkdir -p /home/$SSH_USER/reservation_service/.envs/.production
       EOF
     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
     - mkdir -p .envs/.production # Ensure the directory exists locally
@@ -76,6 +77,7 @@ deploy:
     - echo "$DJANGO_ENV" > .envs/.production/.django # Generate the .django file dynamically
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/notification_service/.envs/
+    - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/reservation_service/.envs/
     - ssh $SSH_USER@$SSH_HOST "
         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
@@ -84,3 +86,4 @@ deploy:
     - docker
   only:
     - main
+
