@@ -155,6 +155,7 @@ def books_by_institution(request):
 
 @api_view(['POST'])
 def reserve_book_copy(request):
+
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return Response({"error": "Authorization token is required"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -235,6 +236,33 @@ def return_book_copy(request):
 
 @api_view(['POST'])
 def soft_delete_book_copy(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        raise PermissionDenied({"error": "Authorization token is required"})
+
+    token = auth_header.split(' ')[1]
+
+    # Validate the token
+    try:
+        response = requests.get(USER_MANAGEMENT_URL, headers={'Authorization': f'Bearer {token}'})
+        if response.status_code != 200:
+            raise PermissionDenied({"error": "Invalid or expired token"})
+
+        user_data = response.json()
+    except requests.RequestException as e:
+        raise PermissionDenied({"error": f"Unable to authenticate with user management. Error: {str(e)}"})
+
+    # Check if the user belongs to the "staff" role (group ID 2 or 3)
+    groups = user_data.get('user', {}).get('groups', [])
+    is_staff = any(group.get('id') in [2, 3] for group in groups)
+    if not is_staff:
+        raise PermissionDenied({"error": "Access denied. Only staff can perform this action."})
+
+    # Get user's institution ID from the token response
+    user_institution_id = user_data.get('institution', {}).get('id')
+    if not user_institution_id:
+        raise PermissionDenied({"error": "User's institution could not be determined."})
+
     # Process book copy ID
     book_copy_id = request.data.get('book_copy_id')
     if not book_copy_id:
@@ -242,17 +270,25 @@ def soft_delete_book_copy(request):
 
     # Fetch the book copy
     try:
-        book_copy = BookCopy.objects.get(id=book_copy_id)
+        book_copy = BookCopy.objects.select_related('book').get(id=book_copy_id)
     except BookCopy.DoesNotExist:
         return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if book_copy.status == 'reserved' or book_copy.status == 'unavailable':
         return Response({"error": "Book copy is reserved or alredy unavailable"}, status=status.HTTP_400_BAD_REQUEST)
+    # Check if the institution of the book matches the user's institution
+    if book_copy.book.institution != user_institution_id:
+        return Response({"error": "Access denied. The book belongs to a different institution."}, status=status.HTTP_403_FORBIDDEN)
+
+    if book_copy.status == 'reserved' or book_copy.status == 'unavailable':
+        return Response({"error": "Book copy is reserved or already unavailable"}, status=status.HTTP_400_BAD_REQUEST)
+
 
     # Handle the book copy return logic
     book_copy.deleted = True
     book_copy.status = 'unavailable'
     book_copy.save()
+
     return Response({"message": "Book soft deleted successfully"}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
@@ -267,3 +303,19 @@ def get_book_title_by_id(request):
         return Response({"title": book.title}, status=status.HTTP_200_OK)
     except Book.DoesNotExist:
         return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def verify_book_copy_availability_in_bookgroup(request):
+    book_id = request.data.get('book_id')
+    if not book_id:
+        return Response({"error": "Book ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        book_copy = BookCopy.objects.filter(book_id=book_id, status='available').first()
+        if book_copy:
+            return Response({"message": "Book copy is available", "book_copy_id": book_copy.id}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "No available book copy found"}, status=status.HTTP_404_NOT_FOUND)
+    except BookCopy.DoesNotExist:
+        return Response({"error": "Book copy not found"}, status=status.HTTP_404_NOT_FOUND)
+

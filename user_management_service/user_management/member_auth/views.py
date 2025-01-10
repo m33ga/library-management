@@ -251,7 +251,7 @@ def get_user(request):
     user_id = request.data.get('user_id')
     if not user_id:
         return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     try:
         user = User.objects.get(id=user_id)
 
