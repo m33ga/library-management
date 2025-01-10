@@ -246,6 +246,7 @@ def change_user_group(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def get_user(request):
     user_id = request.data.get('user_id')
     if not user_id:
@@ -253,6 +254,12 @@ def get_user(request):
     
     try:
         user = User.objects.get(id=user_id)
-        return Response({"message": "User found", "user_id": user.id}, status=status.HTTP_200_OK)
+
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+        }
+        return Response({"message": "User found", "user": user_data}, status=status.HTTP_200_OK)
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
