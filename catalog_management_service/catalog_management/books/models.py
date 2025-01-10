@@ -30,15 +30,17 @@ class Book(models.Model):
 class ReservationStatus(models.TextChoices):
     AVAILABLE = 'available', 'Available'
     RESERVED = 'reserved', 'Reserved'
+    UNAVAILABLE = 'unavailable', 'Unavailable'
 
 # Tabela BookCopy (cópias físicas dos livros)
 class BookCopy(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="copies")
     status = models.CharField(
-        max_length=10,
+        max_length=12,
         choices=ReservationStatus.choices,
         default=ReservationStatus.AVAILABLE,
     )
+    deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Cópia de '{self.book.title}' - Status: {self.status}"
