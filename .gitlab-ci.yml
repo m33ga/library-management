@@ -62,17 +62,21 @@ build-back-end-production-job:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - echo "Adding SSH host key to known_hosts..."
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
     - echo "Deploying to production environment..."
     - echo "Hello, $GITLAB_USER_LOGIN!"
+    - echo "Creating remote project directory..."
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/$CI_PROJECT_NAME"
+    - echo "Copying files to remote server..."
     - scp -r * $SSH_USER@$SSH_HOST:/home/$SSH_USER/$CI_PROJECT_NAME/
+    - echo "Running Docker Compose on remote server..."
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
         cd /home/$SSH_USER/$CI_PROJECT_NAME &&
         rm -f .env &&
         touch .env &&
         sudo docker compose down -v &&
-        sudo docker system prune -f -a  &&
+        sudo docker system prune -f -a &&
         sudo docker compose up -d --build
       "
