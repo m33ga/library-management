@@ -22,8 +22,9 @@ services:
       - postgres_data_user_management_production:/var/lib/postgresql/data
     env_file:
       - ./user_management_service/.envs/.production/.postgres
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
+
 
   notification:
     image: registry.coding.ipb.pt/library_management_system-group05/notification_service:latest
@@ -49,8 +50,8 @@ services:
       - postgres_data_notification_production:/var/lib/postgresql/data
     env_file:
       - ./notification_service/.envs/.production/.postgres
-    ports:
-      - "5433:5432"
+    expose:
+      - "5432"
 
   catalog:
     image: registry.coding.ipb.pt/library_management_system-group05/catalog_management_service:latest
@@ -75,8 +76,8 @@ services:
       - postgres_data_catalog_production:/var/lib/postgresql/data
     env_file:
       - ./catalog_management_service/.envs/.production/.postgres
-    ports:
-      - "5434:5432"
+    expose:
+      - "5432"
 
   reservation:
     image: registry.coding.ipb.pt/library_management_system-group05/reservation_service:latest
@@ -102,8 +103,8 @@ services:
       - postgres_data_reservation_production:/var/lib/postgresql/data
     env_file:
       - ./reservation_service/.envs/.production/.postgres
-    ports:
-      - "5435:5432"
+    expose:
+      - "5432"
 
   loan:
     image: registry.coding.ipb.pt/library_management_system-group05/loan_service:latest

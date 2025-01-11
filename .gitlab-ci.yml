@@ -1,7 +1,7 @@
 stages:
   - build
   - push
-  - build_production
+  # - deploy
 
 image: docker:latest
 
@@ -21,6 +21,7 @@ before_script:
 build:
   stage: build
   script:
+
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/frontend:latest -f frontend/compose/Dockerfile.prod .
     - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
@@ -32,7 +33,6 @@ build:
     - docker
   only:
     - main
-
 
 push:
   stage: push
@@ -50,35 +50,36 @@ push:
   only:
     - main
 
-build-back-end-production-job:
-  stage: build_production
-  tags:
-    - shared
-  only:
-    - main
-  variables:
-    SSH_HOST: $REMOTE_IP
-    SSH_USER: $REMOTE_USER
-    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_production
-    DOCKER_HOST: "tcp://$REMOTE_IP"
-    POSTGRES_USER: $POSTGRES_USER
-    POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-  before_script:
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
-  script:
-    - echo "Deploying to production environment..."
-    - echo "Hello, $GITLAB_USER_LOGIN!"
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/$CI_PROJECT_NAME"
-    - scp -r * $SSH_USER@$SSH_HOST:/home/$SSH_USER/$CI_PROJECT_NAME/
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
-        cd /home/$SSH_USER/$CI_PROJECT_NAME &&
-        rm -f .env &&
-        touch .env &&
-        sudo docker compose down -v &&
-        sudo docker system prune -f -a  &&
-        sudo docker compose up -d --build
+
+# deploy:
+#   stage: deploy
+#   script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+#     - chmod 600 ~/.ssh/id_rsa
+#     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+#     - chmod 600 ~/.ssh/known_hosts
+#     - |
+#       ssh $SSH_USER@$SSH_HOST <<EOF
+#       echo "Ensuring Docker is accessible"
+#       sudo usermod -aG docker $SSH_USER || true
+#       sudo systemctl start docker || true
+#       EOF
+#     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+#     - mkdir -p .envs/.production
+#     - echo "$POSTGRES_ENV" > .envs/.production/.postgres
+#     - echo "$DJANGO_ENV" > .envs/.production/.django
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/notification_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/reservation_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/catalog_management_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/user_management_service/.envs/
+#     - ssh $SSH_USER@$SSH_HOST "
+#         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
+#         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
+#       "
+#   tags:
+#     - docker
+#   only:
+#     - main
+
