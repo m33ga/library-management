@@ -1,0 +1,197 @@
+services:
+  user_management:
+    build:
+      context: ./user_management_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: user_management_local
+    container_name: user_management_local
+    depends_on:
+      - postgres_user_management
+      - rabbitmq
+    volumes:
+      - ./user_management_service:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./user_management_service/.envs/.local/.postgres
+      - ./user_management_service/.envs/.local/.django
+    command:
+      - /start
+
+  postgres_user_management:
+    image: postgres:16
+    container_name: postgres_user_management_local
+    volumes:
+      - postgres_data_user_management_local:/var/lib/postgresql/data
+    env_file:
+      - ./user_management_service/.envs/.local/.postgres
+    ports:
+      - "5432:5432"
+
+  notification:
+    build:
+      context: ./notification_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: notification_local
+    container_name: notification_local
+    depends_on:
+      - postgres_notification
+      - rabbitmq
+    volumes:
+      - ./notification_service:/app
+    ports:
+      - "8080:8000"
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+      - ./notification_service/.envs/.local/.django
+      - ./.envs/.local/.env.rabbitmq
+    command:
+      - /start
+
+  postgres_notification:
+    image: postgres:16
+    container_name: postgres_notification_local
+    volumes:
+      - postgres_data_notification_local:/var/lib/postgresql/data
+    env_file:
+      - ./notification_service/.envs/.local/.postgres
+    ports:
+      - "5433:5432"
+
+  catalog:
+    build:
+      context: ./catalog_management_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: catalog_local
+    container_name: catalog_local
+    depends_on:
+      - postgres_catalog
+      - rabbitmq
+    volumes:
+      - ./catalog_management_service:/app
+    ports:
+      - "8081:8000"
+    env_file:
+      - ./catalog_management_service/.envs/.local/.postgres
+      - ./catalog_management_service/.envs/.local/.django
+    command:
+      - /start
+
+  postgres_catalog:
+    image: postgres:16
+    container_name: postgres_catalog_local
+    volumes:
+      - postgres_data_catalog_local:/var/lib/postgresql/data
+    env_file:
+      - ./catalog_management_service/.envs/.local/.postgres
+    ports:
+      - "5434:5432"
+
+  reservation:
+    build:
+      context: ./reservation_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: reservation_local
+    container_name: reservation_local
+    depends_on:
+      - postgres_reservation
+      - rabbitmq
+    volumes:
+      - ./reservation_service:/app
+    ports:
+      - "8082:8000"
+    env_file:
+      - ./reservation_service/.envs/.local/.postgres
+      - ./reservation_service/.envs/.local/.django
+      - ./.envs/.local/.env.rabbitmq
+    command:
+      - /start
+
+  postgres_reservation:
+    image: postgres:16
+    container_name: postgres_reservation_local
+    volumes:
+      - postgres_data_reservation_local:/var/lib/postgresql/data
+    env_file:
+      - ./reservation_service/.envs/.local/.postgres
+    ports:
+      - "5435:5432"
+
+  loan:
+    build:
+      context: ./loan_service
+      dockerfile: ./compose/local/django/Dockerfile
+    image: loan_local
+    container_name: loan_local
+    depends_on:
+      - postgres_loan
+      - rabbitmq
+    volumes:
+      - ./loan_service:/app
+    ports:
+      - "8083:8000"
+    env_file:
+      - ./loan_service/.envs/.local/.postgres
+      - ./loan_service/.envs/.local/.django
+    command:
+      - /start
+
+  postgres_loan:
+    image: postgres:16
+    container_name: postgres_loan_local
+    volumes:
+      - postgres_data_loan_local:/var/lib/postgresql/data
+    env_file:
+      - ./loan_service/.envs/.local/.postgres
+    ports:
+      - "5436:5432"
+
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: mailpit_local
+    ports:
+      - "8025:8025" # Web interface
+      - "1025:1025" # SMTP server
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_local
+    env_file:
+      - ./.envs/.local/.env.rabbitmq
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
+
+  nginx:
+    build:
+      context: ./compose/nginx
+    container_name: nginx_local
+    ports:
+      - "80:80"
+    depends_on:
+      - user_management
+      - notification
+      - frontend
+
+  frontend:
+    image: front-end-i
+    build:
+      context: ./frontend
+      dockerfile: compose/Dockerfile.dev
+    container_name: front_end_c_dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+    volumes:
+      - /app/node_modules
+      - ./frontend:/app
+
+volumes:
+  postgres_data_notification_local:
+  postgres_data_user_management_local:
+  postgres_data_catalog_local:
+  postgres_data_reservation_local:
+  postgres_data_loan_local:

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+
+cd notification
+python manage.py makemigrations
+python manage.py migrate
+python manage.py collectstatic --noinput
+
+celery -A notification worker --queues reservation_notifications_queue --loglevel=info &
+
+exec python manage.py runserver_plus 0.0.0.0:8000 --reloader-type stat

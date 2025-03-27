@@ -1,0 +1,85 @@
+stages:
+  - build
+  - push
+  # - deploy
+
+image: docker:latest
+
+services:
+  - docker:dind
+
+before_script:
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "Adding SSH host key to known_hosts..."
+  - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts || echo "Failed to add SSH host key"
+
+
+build:
+  stage: build
+  script:
+
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest -f user_management_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/frontend:latest -f frontend/compose/Dockerfile.prod .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/notification_service:latest -f notification_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest -f catalog_management_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest -f reservation_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/loan_service:latest -f loan_service/compose/production/django/Dockerfile .
+    - docker buildx build --platform linux/amd64 -t ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest -f compose/.production/Dockerfile .
+  tags:
+    - docker
+  only:
+    - main
+
+push:
+  stage: push
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push ${CI_REGISTRY}/library_management_system-group05/user_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/frontend:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/notification_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/catalog_management_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/reservation_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/loan_service:latest
+    - docker push ${CI_REGISTRY}/library_management_system-group05/custom_nginx:latest
+  tags:
+    - docker
+  only:
+    - main
+
+
+# deploy:
+#   stage: deploy
+#   script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+#     - chmod 600 ~/.ssh/id_rsa
+#     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+#     - chmod 600 ~/.ssh/known_hosts
+#     - |
+#       ssh $SSH_USER@$SSH_HOST <<EOF
+#       echo "Ensuring Docker is accessible"
+#       sudo usermod -aG docker $SSH_USER || true
+#       sudo systemctl start docker || true
+#       EOF
+#     - scp docker-compose.production.yml ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/docker-compose.yml
+#     - mkdir -p .envs/.production
+#     - echo "$POSTGRES_ENV" > .envs/.production/.postgres
+#     - echo "$DJANGO_ENV" > .envs/.production/.django
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/loan_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/notification_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/reservation_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/catalog_management_service/.envs/
+#     - scp -r .envs/.production ${SSH_USER}@${SSH_HOST}:/home/${SSH_USER}/user_management_service/.envs/
+#     - ssh $SSH_USER@$SSH_HOST "
+#         docker compose -f /home/${SSH_USER}/docker-compose.yml pull &&
+#         docker compose -f /home/${SSH_USER}/docker-compose.yml up -d --remove-orphans
+#       "
+#   tags:
+#     - docker
+#   only:
+#     - main
+
